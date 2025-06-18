@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações de Usuarios - GAMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/usuarios.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="dashboard-header">
+            <nav class="dashboard-nav container">
+                <h1 class="dashboard-title">GAMA</h1>
+                <div class="dashboard-user">
+                    <span>{{ session.get('nome') }}</span>
+                    <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-primary">Voltar as Configurações</a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+                </div>
+            </nav>
+        </header>
+        <main class="dashboard-content container">
+            <h2>Configurações de Usuarios</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="form-container">
+                <h3 class="titulo">Adicionar Novo Usuario</h3>
+                <form action="{{ url_for('usuarios.config_usuarios') }}" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_usuario" class="form-label">Número de Identificação</label>
+                            <input type="text" id="id_usuario" name="id_usuario" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cpf_usuario" class="form-label">CPF</label>
+                            <input type="text" id="cpf_usuario" name="cpf_usuario" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nome" class="form-label">Nome</label>
+                            <input type="text" id="nome" name="nome" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" id="email" name="email" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="senha" class="form-label">Senha</label>
+                            <input type="password" id="senha" name="senha" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmar_senha" class="form-label">Confirmar Senha</label>
+                            <input type="password" id="confirmar_senha" name="confirmar_senha" class="form-input" required>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">Adicionar Usuario</button>
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar</a>
+                    </div>
+                </form>
+            </div>
+
+            <h3 class="titulo">Usuarios Cadastrados</h3>
+            <div class="tabela-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nº</th>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>CPF</th>
+                            <th>Data de Ingresso</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr>
+                            <td>{{ usuario[0] }}</td>
+                            <td>{{ usuario[2] }}</td>
+                            <td>{{ usuario[3] }}</td>
+                            <td>{{ usuario[1] }}</td>
+                            <td>{{ usuario[6].strftime('%d/%m/%y %H:%M') }}</td>
+                            <td class="acoes">
+                                <button class="btn btn-secundario" onclick="openEditModal('{{ usuario[0] }}', '{{ usuario[2] }}', '{{ usuario[3] }}', '{{ usuario[1] }}')">Editar</button>
+                                <form action="{{ url_for('usuarios.remover_usuario', id_usuario=usuario[0]) }}" method="POST" class="inline-form" onsubmit="return confirm('Tem certeza que deseja remover este usuario?');">
+                                    <button type="submit" class="btn btn-perigo">Remover</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="editModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeEditModal()">&times;</span>
+                    <h3>Editar Usuario</h3>
+                    <form action="{{ url_for('usuarios.editar_usuario') }}" method="POST">
+                        <input type="hidden" id="edit_id_usuario" name="id_usuario">
+                        <div class="form-group">
+                            <label for="edit_nome" class="form-label">Nome</label>
+                            <input type="text" id="edit_nome" name="nome" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_email" class="form-label">Email</label>
+                            <input type="email" id="edit_email" name="email" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_cpf" class="form-label">CPF</label>
+                            <input type="text" id="edit_cpf" name="cpf_usuario" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_senha" class="form-label">Nova Senha (deixe em branco para manter a atual)</label>
+                            <input type="password" id="edit_senha" name="senha" class="form-input">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function openEditModal(id, nome, email, cpf) {
+            document.getElementById('edit_id_usuario').value = id;
+            document.getElementById('edit_nome').value = nome;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_cpf').value = cpf;
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Fechar o modal quando clicar fora dele
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

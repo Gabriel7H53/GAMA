@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Administrador - Sistema de Homologação</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+<div class="dashboard">
+    <header class="dashboard-header">
+        <nav class="dashboard-nav container">
+            <h1 class="dashboard-title">Sistema de Homologação</h1>
+            <div class="dashboard-user">
+                <span>{{ nome }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+            </div>
+        </nav>
+    </header>
+    <main class="dashboard-main container">
+        <div class="dashboard-intro">
+            <h2 style="font-size: 2rem;">Painel do Administrador</h2>
+            <p class="config-subtitle">Bem-Vindo <strong>{{ session.get('nome') }}</strong></p>
+        </div>
+        <div class="cards-container">
+            <div class="uniform-card">
+                <div class="card-icon">⚙️</div>
+                <h3>Usuários</h3>
+                <p>Configurações relacionadas a edição, alteração e inserção de usuários.</p>
+                <a href="{{ url_for('usuarios.config_usuarios') }}" class="btn btn-primary">Acessar</a>
+            </div>
+            <div class="uniform-card">
+                <div class="card-icon">👥</div>
+                <h3>Editais de Homologação</h3>
+                <p>Gerencie os editais de homologação e seus respectivos candidatos.</p>
+                <a href="{{ url_for('edital.gerenciar_editais') }}" class="btn btn-primary">Acessar</a>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

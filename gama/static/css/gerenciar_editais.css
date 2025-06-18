@@ -1,0 +1,531 @@
+/* Edital Management Styles - Overrides estilo.css where necessary */
+
+/* Edital card */
+.edital-card {
+    background: var(--surface) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    margin-bottom: 1.5rem !important;
+    overflow: hidden !important;
+    border: 1px solid #e5e7eb !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.edital-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+.edital-header {
+    background: #f9fafb !important;
+    padding: 1.25rem 1.5rem !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    cursor: pointer !important;
+    gap: 1rem !important;
+    flex-wrap: wrap !important;
+}
+
+.edital-body {
+    padding: 1.5rem !important;
+    display: none !important;
+}
+
+.edital-body.active {
+    display: block !important;
+}
+
+/* Search bar */
+.search-container {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 1.5rem !important;
+    flex-wrap: wrap !important;
+    gap: 1rem !important;
+}
+
+.search-bar {
+    position: relative !important;
+    max-width: 400px !important;
+    width: 100% !important;
+}
+
+.search-bar input {
+    width: 100% !important;
+    padding: 0.75rem 1rem 0.75rem 2.5rem !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    font-size: 1rem !important;
+    transition: all 0.2s !important;
+    background: #ffffff !important;
+}
+
+.search-bar input:focus {
+    outline: none !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+.search-bar i {
+    position: absolute !important;
+    left: 1rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: var(--text-light) !important;
+}
+
+/* Badges */
+.badge {
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.75rem !important;
+    border-radius: 9999px !important;
+    font-weight: 500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.badge-success {
+    background: rgba(34, 197, 94, 0.15) !important;
+    color: var(--success) !important;
+}
+
+.badge-warning {
+    background: rgba(234, 179, 8, 0.15) !important;
+    color: #eab308 !important;
+}
+
+.badge-danger {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: var(--danger) !important;
+}
+
+/* Modal styles */
+.modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 1000 !important;
+}
+
+.modal.active {
+    display: flex !important;
+}
+
+.modal-content {
+    background: var(--surface) !important;
+    border-radius: 12px !important;
+    max-width: 600px !important;
+    width: 90% !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+    border: none !important;
+}
+
+.modal-header {
+    padding: 1.25rem 1.5rem !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.modal-header h3 {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    color: var(--text) !important;
+}
+
+.modal-body {
+    padding: 1.5rem !important;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem !important;
+    background: #f9fafb !important;
+    border-top: 1px solid #e5e7eb !important;
+    border-radius: 0 0 12px 12px !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 0.75rem !important;
+}
+
+.form-row {
+    display: flex !important;
+    gap: 1rem !important;
+    margin-bottom: 0 !important;
+}
+
+.form-row .form-group {
+    flex: 1 !important;
+    margin-bottom: 1rem !important;
+}
+
+.form-group {
+    margin-bottom: 1rem !important;
+}
+
+.form-group label {
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--text) !important;
+    display: block !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="number"],
+.form-group select {
+    width: 100% !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+    color: var(--text) !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="date"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus {
+    outline: none !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+.form-check {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    margin-top: 0.75rem !important;
+}
+
+.form-check input[type="checkbox"] {
+    height: 1rem !important;
+    width: 1rem !important;
+    border-radius: 4px !important;
+    border: 1px solid #d1d5db !important;
+    cursor: pointer !important;
+}
+
+.form-check label {
+    font-size: 0.875rem !important;
+    color: var(--text) !important;
+    margin-bottom: 0 !important;
+}
+
+/* Table styles */
+.edital-table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    margin-top: 1rem !important;
+    background: var(--surface) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+.edital-table th,
+.edital-table td {
+    padding: 0.75rem 1rem !important;
+    text-align: left !important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.edital-table th {
+    background: #f1f5f9 !important;
+    font-weight: 600 !important;
+    color: var(--text-light) !important;
+    font-size: 0.875rem !important;
+    text-transform: uppercase !important;
+}
+
+.edital-table td {
+    font-size: 0.875rem !important;
+    color: var(--text) !important;
+}
+
+.edital-table tr:last-child td {
+    border-bottom: none !important;
+}
+
+.edital-table .actions {
+    display: flex !important;
+    gap: 0.5rem !important;
+}
+
+/* Cargo section */
+.edital-body h4 {
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    color: var(--text) !important;
+    margin-bottom: 1rem !important;
+    margin-top: 1.5rem !important;
+    border-left: 4px solid var(--primary) !important;
+    padding-left: 0.75rem !important;
+}
+
+.edital-body h4:first-child {
+    margin-top: 0 !important;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center !important;
+    padding: 3rem 1.5rem !important;
+    background: #f9fafb !important;
+    border-radius: 12px !important;
+    border: 1px dashed #d1d5db !important;
+    margin: 1.5rem 0 !important;
+}
+
+.empty-state i {
+    font-size: 2.5rem !important;
+    margin-bottom: 1rem !important;
+    color: var(--text-light) !important;
+}
+
+.empty-state p {
+    font-size: 1rem !important;
+    color: var(--text-light) !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* Edital info */
+.edital-info {
+    display: flex !important;
+    gap: 1rem !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+.edital-info span {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    font-size: 0.875rem !important;
+    color: var(--text) !important;
+    white-space: nowrap !important;
+}
+
+.edital-info i {
+    color: var(--primary) !important;
+    font-size: 1rem !important;
+}
+
+/* Action buttons */
+.actions {
+    display: flex !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+}
+
+.btn-primary {
+    background: var(--primary) !important;
+    color: white !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    border-radius: 6px !important;
+    transition: background 0.2s !important;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark) !important;
+}
+
+.btn-secondary {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    border: 1px solid #d1d5db !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    border-radius: 6px !important;
+    transition: background 0.2s !important;
+}
+
+.btn-secondary:hover {
+    background: #f3f4f6 !important;
+}
+
+.btn-warning {
+    background: #eab308 !important;
+    color: white !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    border-radius: 6px !important;
+    transition: background 0.2s !important;
+}
+
+.btn-warning:hover {
+    background: #d97706 !important;
+}
+
+.btn-danger {
+    background: var(--danger) !important;
+    color: white !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    border-radius: 6px !important;
+    transition: background 0.2s !important;
+}
+
+.btn-danger:hover {
+    background: #dc2626 !important;
+}
+
+.modal-header .icon-button {
+    font-size: 1.25rem !important;
+    color: var(--text-light) !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    padding: 0.5rem !important;
+}
+
+.modal-header .icon-button:hover {
+    color: var(--text) !important;
+}
+
+.icon-button {
+    background: none !important;
+    border: none !important;
+    color: var(--text-light) !important;
+    cursor: pointer !important;
+    font-size: 1rem !important;
+    padding: 0.5rem !important;
+    transition: color 0.2s !important;
+}
+
+.icon-button:hover {
+    color: var(--text) !important;
+}
+
+/* Page title */
+.page-title {
+    margin-bottom: 1.5rem !important;
+    font-weight: 700 !important;
+    color: var(--text) !important;
+    font-size: 1.75rem !important;
+}
+
+/* Section header */
+.section-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Alert */
+.alert {
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 8px !important;
+    margin-bottom: 1rem !important;
+    font-size: 0.875rem !important;
+}
+
+.alert-success {
+    background: rgba(34, 197, 94, 0.1) !important;
+    color: var(--success) !important;
+    border: 1px solid rgba(34, 197, 94, 0.3) !important;
+}
+
+.alert-error {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: var(--danger) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .edital-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+    }
+
+    .edital-info {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+    }
+
+    .actions {
+        width: 100% !important;
+        justify-content: flex-start !important;
+    }
+
+    .search-container {
+        flex-direction: column !important;
+        gap: 1rem !important;
+        align-items: stretch !important;
+    }
+
+    .modal-content {
+        width: 95% !important;
+    }
+
+    .form-row {
+        flex-direction: column !important;
+        gap: 0 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .edital-table th,
+    .edital-table td {
+        padding: 0.5rem !important;
+        font-size: 0.75rem !important;
+    }
+
+    .edital-info span {
+        font-size: 0.75rem !important;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-warning,
+    .btn-danger {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.75rem !important;
+    }
+
+    .modal-header h3 {
+        font-size: 1rem !important;
+    }
+
+    .page-title {
+        font-size: 1.25rem !important;
+    }
+    /* ... (previous styles remain unchanged) */
+
+    /* Form help text */
+    .form-help {
+        font-size: 0.75rem !important;
+        color: var(--text-light) !important;
+        margin-top: 0.25rem !important;
+    }
+
+    /* File input */
+    input[type="file"] {
+        padding: 0.5rem !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 6px !important;
+        background: #ffffff !important;
+        width: 100% !important;
+    }
+}
