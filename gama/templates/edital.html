@@ -3,28 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Administrador - Sistema de Homologação</title>
+    <title>Gerenciar Editais - GAMA</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
-<div class="dashboard">
-    <header class="dashboard-header">
-        <nav class="dashboard-nav container">
-            <h1 class="dashboard-title">Sistema de Homologação de Editais</h1>
-            <div class="dashboard-user">
-                <span>{{ nome }}</span>
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+    <div class="dashboard">
+        <header class="dashboard-header">
+            <nav class="dashboard-nav container">
+                <h1 class="dashboard-title">GAMA</h1>
+                <div class="dashboard-user">
+                    <span>{{ session.get('nome') }}</span>
+                    <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+                </div>
+            </nav>
+        </header>
+
+        <main class="dashboard-content container">
+            <div class="section-header">
+                <h2 class="page-title">Gerenciamento de Editais</h2>
+                <button class="btn btn-primary" onclick="openEditalModal(null)">
+                    <i class="fas fa-plus"></i> Novo Edital
+                </button>
             </div>
-        </nav>
-    </header>
-    <main class="dashboard-main container">
-        <div class="dashboard-intro">
-            <h2 style="font-size: 2rem;">Edital</h2>
-            <p class="config-subtitle">Usuario: <strong>{{ session.get('nome') }}</strong></p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% for edital in editais %}
+            <div class="edital-card" id="edital-{{ edital[0] }}">
+                <div class="edital-header" onclick="toggleEditalBody('{{ edital[0] }}')">
+                    <div class="edital-info">
+                        <strong>{{ edital[1] }}</strong>
+                        <span title="Data de Vencimento"><i class="fas fa-calendar-times"></i> {{ edital[4] }}</span>
+                        <span title="Status">
+                            {% if edital[6] == 'ativo' %}
+                                <span class="badge badge-success">Ativo</span>
+                            {% elif edital[6] == 'inativo' %}
+                                <span class="badge badge-danger">Inativo</span>
+                            {% else %}
+                                <span class="badge badge-warning">Prorrogado</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="actions">
+                        <button class="icon-button" onclick="event.stopPropagation(); openCandidatoModal(null, {{ edital[0] }});"><i class="fas fa-user-plus"></i></button>
+                        <button class="icon-button"
+                                data-edital='{{ edital|tojson }}'
+                                onclick="event.stopPropagation(); openEditalModal(this)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form action="{{ url_for('edital.remover_edital', id_edital=edital[0]) }}" method="POST" onsubmit="return confirm('Atenção! Remover este edital também removerá todos os seus cargos e candidatos. Deseja continuar?');" style="display: inline;">
+                            <button type="submit" class="icon-button" onclick="event.stopPropagation();"><i class="fas fa-trash-alt"></i></button>
+                        </form>
+                    </div>
+                </div>
+                <div class="edital-body" id="body-{{ edital[0] }}">
+                    {% set candidatos = candidatos_por_edital[edital[0]] %}
+                    {% if candidatos %}
+                        <table class="edital-table">
+                            <thead>
+                                <tr>
+                                    <th>Class.</th><th>Nome</th><th>Inscrição</th><th>Cargo</th><th>Nota</th><th>Situação</th><th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for candidato in candidatos %}
+                                <tr>
+                                    <td>{{ candidato[5] }}º</td>
+                                    <td>
+                                        {{ candidato[1] }}
+                                        {% if candidato[6] %}<span class="badge badge-info">PCD</span>{% endif %}
+                                        {% if candidato[7] %}<span class="badge badge-info">Cotista</span>{% endif %}
+                                    </td>
+                                    <td>{{ candidato[2] }}</td>
+                                    <td>{{ candidato[11] }}</td>
+                                    <td>{{ "%.2f"|format(candidato[3]) }}</td>
+                                    <td>{{ 'Nomeado' if candidato[8] == 'nomeado' else 'A Nomear' }}</td>
+                                    <td class="actions">
+                                        <button class="icon-button"
+                                                data-candidato='{{ candidato|tojson }}'
+                                                onclick="openCandidatoModal(this)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form action="{{ url_for('edital.remover_candidato', id_candidato=candidato[0]) }}" method="POST" onsubmit="return confirm('Deseja remover este candidato?');" style="display:inline;">
+                                            <button type="submit" class="icon-button"><i class="fas fa-trash-alt"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-users-slash"></i>
+                            <p>Nenhum candidato cadastrado para este edital.</p>
+                            <button class="btn btn-secondary" onclick="openCandidatoModal(null, {{ edital[0] }})">Adicionar Candidato</button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-file-excel"></i>
+                    <p>Nenhum edital encontrado. Comece adicionando um novo.</p>
+                </div>
+            {% endfor %}
+        </main>
+    </div>
+
+    <div id="editalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="editalModalTitle"></h3>
+                <button class="icon-button" onclick="closeEditalModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="editalForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id_edital" id="id_edital">
+                    <div class="form-group">
+                        <label for="numero_edital">Número do Edital</label>
+                        <input type="text" id="numero_edital" name="numero_edital" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="data_edital">Data do Edital</label>
+                            <input type="date" id="data_edital" name="data_edital" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="data_publicacao">Data de Publicação</label>
+                            <input type="date" id="data_publicacao" name="data_publicacao" required>
+                        </div>
+                    </div>
+                     <div class="form-row">
+                        <div class="form-group">
+                            <label for="vencimento_edital">Vencimento do Edital</label>
+                            <input type="date" id="vencimento_edital" name="vencimento_edital" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prazo_prorrogacao">Prazo de Prorrogação (dias)</label>
+                            <input type="number" id="prazo_prorrogacao" name="prazo_prorrogacao" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status" required>
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                            <option value="prorrogado">Prorrogado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditalModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
         </div>
-    </main>
-</div>
+    </div>
+
+    <div id="candidatoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="candidatoModalTitle"></h3>
+                <button class="icon-button" onclick="closeCandidatoModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="candidatoForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id_candidato" id="id_candidato">
+                    <input type="hidden" name="id_edital" id="id_edital_hidden_candidato">
+                    <div class="form-group"><label for="nome">Nome Completo</label><input type="text" id="nome" name="nome" required></div>
+                    <div class="form-row"><div class="form-group"><label for="numero_inscricao">Nº Inscrição</label><input type="text" id="numero_inscricao" name="numero_inscricao" required></div><div class="form-group"><label for="nome_cargo">Cargo</label><input type="text" id="nome_cargo" name="nome_cargo" required></div></div>
+                    <div class="form-row"><div class="form-group"><label for="nota">Nota Final</label><input type="number" step="0.01" id="nota" name="nota" required></div><div class="form-group"><label for="classificacao">Classificação</label><input type="number" id="classificacao" name="classificacao" required></div></div>
+                    <div class="form-row"><div class="form-group"><label for="situacao">Situação</label><select id="situacao" name="situacao" required><option value="a_nomear">A Nomear</option><option value="nomeado">Nomeado</option></select></div><div class="form-group"><label for="data_posse">Data da Posse</label><input type="date" id="data_posse" name="data_posse"><small class="form-help">Preencha apenas se a situação for "Nomeado".</small></div></div>
+                    <div class="form-check-group"><div class="form-check"><input type="checkbox" id="pcd" name="pcd"><label for="pcd">Candidato PCD</label></div><div class="form-check"><input type="checkbox" id="cotista" name="cotista"><label for="cotista">Candidato Cotista</label></div></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeCandidatoModal()">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleEditalBody(id) {
+            const body = document.getElementById(`body-${id}`);
+            body.classList.toggle('active');
+        }
+
+        const editalModal = document.getElementById('editalModal');
+        const editalForm = document.getElementById('editalForm');
+
+        function openEditalModal(buttonElement) {
+            editalForm.reset();
+            // Se buttonElement for nulo, é um novo edital. Se não, é edição.
+            if (!buttonElement) {
+                document.getElementById('editalModalTitle').innerText = 'Adicionar Novo Edital';
+                editalForm.action = "{{ url_for('edital.adicionar_edital') }}";
+            } else {
+                const edital = JSON.parse(buttonElement.getAttribute('data-edital'));
+                document.getElementById('editalModalTitle').innerText = 'Editar Edital';
+                editalForm.action = `/edital/editar/${edital[0]}`;
+                // Preenchendo o formulário de edição do edital
+                document.getElementById('id_edital').value = edital[0];
+                document.getElementById('numero_edital').value = edital[1];
+                document.getElementById('data_edital').value = edital[2];
+                document.getElementById('data_publicacao').value = edital[3];
+                document.getElementById('vencimento_edital').value = edital[4];
+                document.getElementById('prazo_prorrogacao').value = edital[5];
+                document.getElementById('status').value = edital[6];
+            }
+            editalModal.classList.add('active');
+        }
+
+        function closeEditalModal() {
+            editalModal.classList.remove('active');
+        }
+
+        const candidatoModal = document.getElementById('candidatoModal');
+        const candidatoForm = document.getElementById('candidatoForm');
+
+        function openCandidatoModal(buttonElement, id_edital_for_new = null) {
+            candidatoForm.reset();
+            // Se buttonElement for nulo, é um novo candidato. Se não, é edição.
+            if (!buttonElement) {
+                document.getElementById('candidatoModalTitle').innerText = 'Adicionar Candidato';
+                document.getElementById('id_edital_hidden_candidato').value = id_edital_for_new;
+                candidatoForm.action = `/edital/${id_edital_for_new}/candidato/adicionar`;
+            } else {
+                const candidato = JSON.parse(buttonElement.getAttribute('data-candidato'));
+                document.getElementById('candidatoModalTitle').innerText = 'Editar Candidato';
+                candidatoForm.action = `/edital/candidato/editar/${candidato[0]}`;
+                
+                document.getElementById('id_edital_hidden_candidato').value = candidato[10];
+                document.getElementById('id_candidato').value = candidato[0];
+                document.getElementById('nome').value = candidato[1];
+                document.getElementById('numero_inscricao').value = candidato[2];
+                document.getElementById('nota').value = candidato[3];
+                document.getElementById('classificacao').value = candidato[5];
+                document.getElementById('pcd').checked = candidato[6];
+                document.getElementById('cotista').checked = candidato[7];
+                document.getElementById('situacao').value = candidato[8];
+                document.getElementById('data_posse').value = candidato[9] || '';
+                document.getElementById('nome_cargo').value = candidato[11];
+            }
+            candidatoModal.classList.add('active');
+        }
+
+        function closeCandidatoModal() {
+            candidatoModal.classList.remove('active');
+        }
+
+        window.onclick = function(event) {
+            if (event.target == editalModal) {
+                closeEditalModal();
+            }
+            if (event.target == candidatoModal) {
+                closeCandidatoModal();
+            }
+        }
+    </script>
 </body>
 </html>
