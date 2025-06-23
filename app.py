@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from gama.database.database import verificar_login
 from werkzeug.security import generate_password_hash
 from datetime import timedelta
-from gama.controllers.edital_controller import EditalController
 
 # Importando os Blueprints
 from gama.routes.auth_routes import auth_bp
@@ -25,12 +24,6 @@ def make_session_permanent():
 @app.route('/')
 def home():
     return redirect(url_for('auth.login'))
-
-# API para listar cargos de um edital
-@app.route('/api/cargos/<int:id_edital>', methods=['GET'])
-def get_cargos(id_edital):
-    cargos = EditalController.listar_cargos(id_edital)
-    return jsonify([{'id_cargo': cargo[0], 'nome': cargo[1]} for cargo in cargos])
 
 # Registrando os blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')

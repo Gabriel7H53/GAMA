@@ -55,7 +55,7 @@ def criar_tabelas():
         numero_inscricao TEXT NOT NULL UNIQUE,
         nota FLOAT NOT NULL,
         id_cargo INTEGER NOT NULL,
-        ordem_nomeacao INTEGER NOT NULL,
+        classificacao INTEGER NOT NULL,
         pcd BOOLEAN NOT NULL,
         cotista BOOLEAN NOT NULL,
         situacao TEXT NOT NULL CHECK (situacao IN ('nomeado', 'a_nomear')),

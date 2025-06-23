@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Administrador - Sistema de Homologação</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+<div class="dashboard">
+    <header class="dashboard-header">
+        <nav class="dashboard-nav container">
+            <h1 class="dashboard-title">Sistema de Homologação de Editais</h1>
+            <div class="dashboard-user">
+                <span>{{ nome }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+            </div>
+        </nav>
+    </header>
+    <main class="dashboard-main container">
+        <div class="dashboard-intro">
+            <h2 style="font-size: 2rem;">Edital</h2>
+            <p class="config-subtitle">Usuario: <strong>{{ session.get('nome') }}</strong></p>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -7,9 +7,7 @@ usuario_bp = Blueprint('usuarios', __name__, template_folder='../templates')
 
 @usuario_bp.route('/painel_usuario')
 def painel_usuario():
-    vagas = VagaController.listar_vagas()
-    setores = SetorController.listar_setores()
-    return render_template('painel_usuario.html', vagas=vagas, setores=setores, nome=session.get('nome'))
+    return render_template('painel_usuario.html', nome=session.get('nome'))
 
 @usuario_bp.route('/config_usuarios', methods=['GET', 'POST'])
 def config_usuarios():
