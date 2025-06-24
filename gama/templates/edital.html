@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
 </head>
 <body>
     <div class="dashboard">
@@ -31,7 +31,7 @@
             <div class="section-header">
                 <h2 class="page-title">Gerenciamento de Editais</h2>
                 <button class="btn btn-primary" onclick="openEditalModal(null)">
-                    <i class="fas fa-plus"></i> Novo Edital
+                    <i></i> Novo Edital
                 </button>
             </div>
 
@@ -76,7 +76,6 @@
                 <div class="edital-body" id="body-{{ edital[0] }}">
                     {% set candidatos_por_cargo = candidatos_por_edital.get(edital[0], {}) %}
                     {% if candidatos_por_cargo %}
-                        
                         {% for cargo_nome, lista_de_candidatos in candidatos_por_cargo.items() %}
                             <div class="cargo-group">
                                 <h4 class="cargo-title">{{ cargo_nome }}</h4>
@@ -119,7 +118,6 @@
                                 </table>
                             </div>
                         {% endfor %}
-
                     {% else %}
                         <div class="empty-state">
                             <i class="fas fa-users-slash"></i>
@@ -128,7 +126,7 @@
                         </div>
                     {% endif %}
                 </div>
-                 </div>
+            </div>
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-file-excel"></i>
@@ -187,7 +185,6 @@
             </form>
         </div>
     </div>
-
     <div id="candidatoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -208,7 +205,6 @@
             </form>
         </div>
     </div>
-
     <script>
         function toggleEditalBody(id) {
             const body = document.getElementById(`body-${id}`);

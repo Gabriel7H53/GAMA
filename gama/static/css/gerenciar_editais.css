@@ -1,19 +1,17 @@
 /* gama/static/css/gerenciar_editais.css */
 
-/* Edital Management Styles */
 .page-title {
     font-weight: 700;
     color: var(--text);
     font-size: 1.75rem;
 }
 
+/* REGRA ATUALIZADA */
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
 }
 
 .edital-card {
@@ -74,7 +72,7 @@
 
 .edital-body.active {
     padding: 1.5rem;
-    max-height: 1000px; /* Adjust as needed */
+    max-height: 1500px; /* Aumentado para comportar múltiplos cargos */
 }
 
 /* Badges */
@@ -84,31 +82,58 @@
     border-radius: 9999px;
     font-weight: 600;
     text-transform: uppercase;
+    margin-left: 0.5rem;
 }
 .badge-success { background: #dcfce7; color: #166534; }
 .badge-danger { background: #fee2e2; color: #991b1b; }
 .badge-warning { background: #fef3c7; color: #92400e; }
 .badge-info { background: #dbeafe; color: #1e40af; }
 
-/* Table styles */
+
+/* ====================================================== */
+/* ALTERAÇÕES NA TABELA DE CANDIDATOS            */
+/* ====================================================== */
+
 .edital-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
+    /* 1. Força a tabela a obedecer as larguras definidas, ignorando o conteúdo */
+    table-layout: fixed; 
 }
+
 .edital-table th, .edital-table td {
     padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid #e5e7eb;
     font-size: 0.875rem;
+    /* 2. Impede que o texto quebre em várias linhas */
+    white-space: nowrap;
+    overflow: hidden;
+    /* 3. Adiciona "..." se o texto for muito longo para a coluna */
+    text-overflow: ellipsis;
 }
+
 .edital-table th {
     background: #f1f5f9;
     font-weight: 600;
     color: var(--text-light);
 }
+
 .edital-table tr:last-child td { border-bottom: none; }
-.edital-table .actions { display: flex; gap: 0.5rem; }
+
+/* 4. Define a largura em porcentagem para cada coluna */
+.edital-table th:nth-child(1) { width: 8%; }  /* Classificação */
+.edital-table th:nth-child(2) { width: 38%; } /* Nome (maior coluna) */
+.edital-table th:nth-child(3) { width: 15%; } /* Inscrição */
+.edital-table th:nth-child(4) { width: 9%; }  /* Nota */
+.edital-table th:nth-child(5) { width: 14%; } /* Situação */
+.edital-table th:nth-child(6) { width: 16%; } /* Ações */
+
+
+/* ====================================================== */
+/* OUTROS ESTILOS (NENHUMA ALTERAÇÃO ABAIXO)       */
+/* ====================================================== */
 
 /* Modal styles */
 .modal {
@@ -177,7 +202,7 @@
     transition: color 0.2s;
 }
 .icon-button:hover { color: var(--primary); }
-.fa-trash-alt:hover { color: var(--danger); }
+.icon-button .fa-trash-alt:hover { color: var(--danger); }
 
 /* Empty state */
 .empty-state {
@@ -195,48 +220,8 @@
 }
 .empty-state p { margin-bottom: 1.5rem; }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .edital-header { flex-direction: column; align-items: flex-start; }
-    .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
-    .form-row .form-group { margin-bottom: 1rem; }
-}
-
-btn-action {
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    padding: 5px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: #333;
-    text-decoration: none;
-    display: inline-block;
-    transition: background-color 0.2s;
-}
-
-.btn-action:hover {
-    background-color: #e0e0e0;
-    border-color: #ccc;
-}
-
-.btn-action-delete:hover {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border-color: #fecaca;
-}
-
-.modal-header .btn-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    font-weight: bold;
-    cursor: pointer;
-    color: #888;
-}
-
-cargo-group {
+/* Cargo Grouping Styles */
+.cargo-group {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid #e5e7eb;
@@ -253,4 +238,12 @@ cargo-group {
     font-weight: 600;
     color: var(--text);
     margin-bottom: 1rem;
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+    .edital-header { flex-direction: column; align-items: flex-start; }
+    .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
+    .form-row .form-group { margin-bottom: 1rem; }
 }
