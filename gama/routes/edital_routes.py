@@ -3,6 +3,8 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from gama.models.edital import Edital, Cargo, Candidato
 from datetime import datetime, timedelta
 from collections import defaultdict # <- Importe esta linha
+import csv
+import io
 
 edital_bp = Blueprint('edital', __name__, template_folder='../templates')
 
@@ -168,4 +170,85 @@ def remover_candidato(id_candidato):
         
     success, message = Candidato.delete(id_candidato)
     flash(message, 'success' if success else 'error')
+    return redirect(url_for('edital.painel'))
+
+@edital_bp.route('/<int:id_edital>/candidato/adicionar_lote', methods=['POST'])
+def adicionar_lote(id_edital):
+    if not check_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('auth.login'))
+
+    if 'planilha' not in request.files:
+        flash('Nenhum arquivo enviado.', 'error')
+        return redirect(url_for('edital.painel'))
+
+    arquivo = request.files['planilha']
+
+    if arquivo.filename == '':
+        flash('Nenhum arquivo selecionado.', 'error')
+        return redirect(url_for('edital.painel'))
+
+    if not arquivo.filename.lower().endswith('.csv'):
+        flash('Formato de arquivo inválido. Por favor, envie um arquivo .csv', 'error')
+        return redirect(url_for('edital.painel'))
+
+    # Processamento do arquivo CSV
+    try:
+        # Decodifica o arquivo em memória
+        stream = io.StringIO(arquivo.stream.read().decode("windows-1252"), newline=None)
+        reader = csv.reader(stream)
+
+        # Pula o cabeçalho (opcional, mas recomendado)
+        next(reader, None)
+
+        # Busca a última classificação para continuar a sequência
+        ultima_classificacao = Candidato.get_max_classificacao(id_edital)
+        
+        candidatos_adicionados = 0
+        erros = []
+
+        for i, linha in enumerate(reader):
+            if len(linha) < 4:
+                erros.append(f"Linha {i+2}: formato inválido (esperado 4 colunas).")
+                continue
+
+            nome, inscricao, nota_str, nome_cargo = linha
+            
+            try:
+                # Validação dos dados
+                nota = float(nota_str.replace(',', '.'))
+                classificacao_atual = ultima_classificacao + i + 1
+
+                # Cria ou obtém o ID do cargo
+                id_cargo = Cargo.get_or_create(id_edital, nome_cargo.strip())
+
+                # Adiciona o candidato com valores padrão
+                Candidato.create(
+                    id_edital=id_edital,
+                    id_cargo=id_cargo,
+                    nome=nome.strip(),
+                    inscricao=inscricao.strip(),
+                    nota=nota,
+                    classificacao=classificacao_atual,
+                    pcd=False,        # Valor padrão
+                    cotista=False,    # Valor padrão
+                    situacao='a_nomear', # Valor padrão
+                    data_posse=None   # Valor padrão
+                )
+                candidatos_adicionados += 1
+            except ValueError:
+                erros.append(f"Linha {i+2}: a nota '{nota_str}' não é um número válido.")
+            except Exception as e:
+                erros.append(f"Linha {i+2} ({nome}): {e}")
+
+        # Mensagem de feedback
+        if candidatos_adicionados > 0:
+            flash(f'{candidatos_adicionados} candidatos adicionados com sucesso!', 'success')
+        if erros:
+            msg_erro = f'Ocorreram {len(erros)} erros durante a importação: ' + " | ".join(erros)
+            flash(msg_erro, 'error')
+
+    except Exception as e:
+        flash(f'Ocorreu um erro ao processar o arquivo: {e}', 'error')
+
     return redirect(url_for('edital.painel'))
