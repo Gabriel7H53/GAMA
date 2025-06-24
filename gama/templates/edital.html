@@ -17,7 +17,11 @@
                 <h1 class="dashboard-title">GAMA</h1>
                 <div class="dashboard-user">
                     <span>{{ session.get('nome') }}</span>
-                    <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                    {% if session.get('tipo') == 'administrador' %}
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                    {% else %}
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                    {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
             </nav>
@@ -34,7 +38,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">
+                        <div class="alert alert-{{ 'info' if category == 'info' else ('success' if category == 'success' else 'error') }}">
                             {{ message }}
                         </div>
                     {% endfor %}
@@ -70,41 +74,52 @@
                     </div>
                 </div>
                 <div class="edital-body" id="body-{{ edital[0] }}">
-                    {% set candidatos = candidatos_por_edital[edital[0]] %}
-                    {% if candidatos %}
-                        <table class="edital-table">
-                            <thead>
-                                <tr>
-                                    <th>Class.</th><th>Nome</th><th>Inscrição</th><th>Cargo</th><th>Nota</th><th>Situação</th><th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            {% for candidato in candidatos %}
-                                <tr>
-                                    <td>{{ candidato[5] }}º</td>
-                                    <td>
-                                        {{ candidato[1] }}
-                                        {% if candidato[6] %}<span class="badge badge-info">PCD</span>{% endif %}
-                                        {% if candidato[7] %}<span class="badge badge-info">Cotista</span>{% endif %}
-                                    </td>
-                                    <td>{{ candidato[2] }}</td>
-                                    <td>{{ candidato[11] }}</td>
-                                    <td>{{ "%.2f"|format(candidato[3]) }}</td>
-                                    <td>{{ 'Nomeado' if candidato[8] == 'nomeado' else 'A Nomear' }}</td>
-                                    <td class="actions">
-                                        <button class="icon-button"
-                                                data-candidato='{{ candidato|tojson }}'
-                                                onclick="openCandidatoModal(this)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <form action="{{ url_for('edital.remover_candidato', id_candidato=candidato[0]) }}" method="POST" onsubmit="return confirm('Deseja remover este candidato?');" style="display:inline;">
-                                            <button type="submit" class="icon-button"><i class="fas fa-trash-alt"></i></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
+                    {% set candidatos_por_cargo = candidatos_por_edital.get(edital[0], {}) %}
+                    {% if candidatos_por_cargo %}
+                        
+                        {% for cargo_nome, lista_de_candidatos in candidatos_por_cargo.items() %}
+                            <div class="cargo-group">
+                                <h4 class="cargo-title">{{ cargo_nome }}</h4>
+                                <table class="edital-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Class.</th>
+                                            <th>Nome</th>
+                                            <th>Inscrição</th>
+                                            <th>Nota</th>
+                                            <th>Situação</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for candidato in lista_de_candidatos %}
+                                        <tr>
+                                            <td>{{ candidato[5] }}º</td>
+                                            <td>
+                                                {{ candidato[1] }}
+                                                {% if candidato[6] %}<span class="badge badge-info">PCD</span>{% endif %}
+                                                {% if candidato[7] %}<span class="badge badge-info">Cotista</span>{% endif %}
+                                            </td>
+                                            <td>{{ candidato[2] }}</td>
+                                            <td>{{ "%.2f"|format(candidato[3]) }}</td>
+                                            <td>{{ 'Nomeado' if candidato[8] == 'nomeado' else 'A Nomear' }}</td>
+                                            <td class="actions">
+                                                <button class="icon-button"
+                                                        data-candidato='{{ candidato|tojson }}'
+                                                        onclick="openCandidatoModal(this)">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <form action="{{ url_for('edital.remover_candidato', id_candidato=candidato[0]) }}" method="POST" onsubmit="return confirm('Deseja remover este candidato?');" style="display:inline;">
+                                                    <button type="submit" class="icon-button"><i class="fas fa-trash-alt"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endfor %}
+
                     {% else %}
                         <div class="empty-state">
                             <i class="fas fa-users-slash"></i>
@@ -113,7 +128,7 @@
                         </div>
                     {% endif %}
                 </div>
-            </div>
+                 </div>
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-file-excel"></i>
@@ -199,13 +214,10 @@
             const body = document.getElementById(`body-${id}`);
             body.classList.toggle('active');
         }
-
         const editalModal = document.getElementById('editalModal');
         const editalForm = document.getElementById('editalForm');
-
         function openEditalModal(buttonElement) {
             editalForm.reset();
-            // Se buttonElement for nulo, é um novo edital. Se não, é edição.
             if (!buttonElement) {
                 document.getElementById('editalModalTitle').innerText = 'Adicionar Novo Edital';
                 editalForm.action = "{{ url_for('edital.adicionar_edital') }}";
@@ -213,7 +225,6 @@
                 const edital = JSON.parse(buttonElement.getAttribute('data-edital'));
                 document.getElementById('editalModalTitle').innerText = 'Editar Edital';
                 editalForm.action = `/edital/editar/${edital[0]}`;
-                // Preenchendo o formulário de edição do edital
                 document.getElementById('id_edital').value = edital[0];
                 document.getElementById('numero_edital').value = edital[1];
                 document.getElementById('data_edital').value = edital[2];
@@ -224,17 +235,13 @@
             }
             editalModal.classList.add('active');
         }
-
         function closeEditalModal() {
             editalModal.classList.remove('active');
         }
-
         const candidatoModal = document.getElementById('candidatoModal');
         const candidatoForm = document.getElementById('candidatoForm');
-
         function openCandidatoModal(buttonElement, id_edital_for_new = null) {
             candidatoForm.reset();
-            // Se buttonElement for nulo, é um novo candidato. Se não, é edição.
             if (!buttonElement) {
                 document.getElementById('candidatoModalTitle').innerText = 'Adicionar Candidato';
                 document.getElementById('id_edital_hidden_candidato').value = id_edital_for_new;
@@ -243,7 +250,6 @@
                 const candidato = JSON.parse(buttonElement.getAttribute('data-candidato'));
                 document.getElementById('candidatoModalTitle').innerText = 'Editar Candidato';
                 candidatoForm.action = `/edital/candidato/editar/${candidato[0]}`;
-                
                 document.getElementById('id_edital_hidden_candidato').value = candidato[10];
                 document.getElementById('id_candidato').value = candidato[0];
                 document.getElementById('nome').value = candidato[1];
@@ -258,11 +264,9 @@
             }
             candidatoModal.classList.add('active');
         }
-
         function closeCandidatoModal() {
             candidatoModal.classList.remove('active');
         }
-
         window.onclick = function(event) {
             if (event.target == editalModal) {
                 closeEditalModal();
