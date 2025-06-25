@@ -50,13 +50,24 @@
                 <div class="edital-header" onclick="toggleEditalBody('{{ edital[0] }}')">
                     <div class="edital-info">
                         <strong>{{ edital[1] }}</strong>
-                        <span title="Data de Vencimento"><i class="fas fa-calendar-times"></i> {{ edital[4] }}</span>
+
+                        {% set status_vencimento = edital[7] %} {# O status que adicionamos está no índice 7 #}
+                        <span class="status-vencimento {{ status_vencimento }}" title="Data de Vencimento">
+                            <i class="fas fa-calendar-times"></i> {{ edital[4] }}
+                            
+                            {% if status_vencimento == 'proximo' %}
+                                <span class="aviso-lateral proximo">Próximo de vencer</span>
+                            {% elif status_vencimento == 'vencido' %}
+                                <span class="aviso-lateral vencido">Vencido</span>
+                            {% endif %}
+                        </span>
                         <span title="Status">
                             {% if edital[6] == 'ativo' %}
                                 <span class="badge badge-success">Ativo</span>
                             {% elif edital[6] == 'inativo' %}
                                 <span class="badge badge-danger">Inativo</span>
                             {% else %}
+                                <span class="badge badge-success">Ativo</span>
                                 <span class="badge badge-warning">Prorrogado</span>
                             {% endif %}
                         </span>

@@ -286,3 +286,34 @@
 .candidato-list-container .cargo-subtitle:first-child {
     margin-top: 0;
 }
+
+.status-vencimento {
+    display: flex;
+    align-items: center;
+}
+.status-vencimento.proximo {
+    color: #b45309;
+    font-weight: 500;
+}
+.status-vencimento.vencido {
+    color: #b91c1c;
+    font-weight: 500;
+    text-decoration: line-through;
+}
+.aviso-lateral {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.aviso-lateral.proximo {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+.aviso-lateral.vencido {
+    background-color: #fee2e2;
+    color: #991b1b;
+}

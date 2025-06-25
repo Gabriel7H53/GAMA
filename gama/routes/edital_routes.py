@@ -1,7 +1,7 @@
 # gama/routes/edital_routes.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash
 from gama.models.edital import Edital, Cargo, Candidato
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from collections import defaultdict # <- Importe esta linha
 import csv
 import io
@@ -12,30 +12,55 @@ def check_admin():
     return 'usuario_id' in session and session.get('tipo') == 'administrador'
 
 # --- FUNÇÃO PAINEL ATUALIZADA ---
-
+# Sua função 'painel' adaptada com a nova lógica
 @edital_bp.route('/painel')
 def painel():
     if not check_admin():
         flash('Acesso negado. Apenas administradores podem gerenciar editais.', 'error')
         return redirect(url_for('auth.login'))
 
-    editais = Edital.get_all()
+    # Pega os editais do banco
+    editais_raw = Edital.get_all()
+    
+    # --- NOVA LÓGICA PARA VERIFICAR O VENCIMENTO ---
+    editais_com_status_vencimento = []
+    hoje = date.today()
+    tres_meses_frente = hoje + timedelta(days=90)
+
+    for edital_tuple in editais_raw:
+        edital_lista = list(edital_tuple)
+        status_vencimento = 'ok'
+        
+        try:
+            data_vencimento = datetime.strptime(edital_lista[4], '%Y-%m-%d').date()
+            if data_vencimento < hoje:
+                status_vencimento = 'vencido'
+            elif hoje <= data_vencimento <= tres_meses_frente:
+                status_vencimento = 'proximo'
+        except (ValueError, TypeError):
+            pass
+        
+        edital_lista.append(status_vencimento)
+        editais_com_status_vencimento.append(edital_lista)
+    # --- FIM DA NOVA LÓGICA ---
+
     candidatos_por_edital = {}
-    for edital in editais:
+    
+    # A partir daqui, usamos a nova lista 'editais_com_status_vencimento'
+    for edital in editais_com_status_vencimento:
         todos_candidatos_do_edital = Candidato.get_by_edital(edital[0])
         
         candidatos_agrupados_por_cargo = defaultdict(list)
         for candidato in todos_candidatos_do_edital:
-            nome_cargo = candidato[11] # O nome do cargo está na posição 11
+            nome_cargo = candidato[11]
             candidatos_agrupados_por_cargo[nome_cargo].append(candidato)
             
-        # Armazena o dicionário de candidatos já agrupados por cargo
         candidatos_por_edital[edital[0]] = dict(sorted(candidatos_agrupados_por_cargo.items()))
 
     return render_template(
         'edital.html', 
         nome=session.get('nome'), 
-        editais=editais,
+        editais=editais_com_status_vencimento, # Enviando a lista atualizada
         candidatos_por_edital=candidatos_por_edital
     )
 
