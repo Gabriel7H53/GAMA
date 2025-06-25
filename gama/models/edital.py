@@ -195,3 +195,23 @@ class Candidato:
             return 0
         finally:
             conn.close()
+            
+    @staticmethod
+    def nomear(id_candidato, data_posse):
+        """Atualiza a situação de um candidato para 'nomeado' e define a data de posse."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE Candidato
+                SET situacao = 'nomeado', data_posse = ?
+                WHERE id_candidato = ?
+            """, (data_posse, id_candidato))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao nomear candidato {id_candidato}: {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()

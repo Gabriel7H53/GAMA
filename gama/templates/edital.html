@@ -20,7 +20,7 @@
                     {% if session.get('tipo') == 'administrador' %}
                         <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="#" class="btn btn-secondary">Voltar ao Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -62,6 +62,9 @@
                         </span>
                     </div>
                     <div class="actions">
+                        <button class="icon-button" title="Nomear em Lote" onclick="event.stopPropagation(); openNomearLoteModal({{ edital[0] }});">
+                            <i class="fas fa-user-check"></i>
+                        </button>
                         <button class="icon-button" title="Adicionar em Lote" onclick="event.stopPropagation(); openLoteModal({{ edital[0] }});">
                             <i class="fas fa-file-upload"></i>
                         </button>
@@ -233,8 +236,38 @@
             </form>
         </div>
     </div>
+    
+    <div id="nomearLoteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nomear Candidatos em Lote</h3>
+                <button class="icon-button" onclick="closeNomearLoteModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="nomearLoteForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="data_posse_lote"><strong>Data de Posse para todos os selecionados:</strong></label>
+                        <input type="date" name="data_posse_lote" id="data_posse_lote" class="form-control" required>
+                    </div>
+                    <hr>
+                    <label>
+                        <input type="checkbox" id="selecionarTodosCandidatos"> <strong>Selecionar todos</strong>
+                    </label>
+                    <div id="listaCandidatosNomear" class="candidato-list-container">
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNomearLoteModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Nomeações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script>
+        const todosOsCandidatos = {{ candidatos_por_edital|tojson }};
+
         function toggleEditalBody(id) {
             const body = document.getElementById(`body-${id}`);
             body.classList.toggle('active');
@@ -305,31 +338,71 @@
             loteModal.classList.remove('active');
         }
 
-        window.onclick = function(event) {
-            if (event.target == editalModal) {
-                closeEditalModal();
+        const nomearLoteModal = document.getElementById('nomearLoteModal');
+        const nomearLoteForm = document.getElementById('nomearLoteForm');
+        const listaCandidatosDiv = document.getElementById('listaCandidatosNomear');
+        const checkboxSelecionarTodos = document.getElementById('selecionarTodosCandidatos');
+        function openNomearLoteModal(id_edital) {
+            nomearLoteForm.action = `/edital/${id_edital}/candidato/nomear_lote`;
+            listaCandidatosDiv.innerHTML = '';
+            const candidatosDoEdital = todosOsCandidatos[id_edital] || {};
+            if (Object.keys(candidatosDoEdital).length === 0) {
+                listaCandidatosDiv.innerHTML = '<p>Não há candidatos a nomear neste edital.</p>';
+            } else {
+                for (const cargo in candidatosDoEdital) {
+                    const candidatosANomear = candidatosDoEdital[cargo].filter(c => c[8] === 'a_nomear');
+                    if (candidatosANomear.length > 0) {
+                        const subtitulo = document.createElement('h5');
+                        subtitulo.className = 'cargo-subtitle';
+                        subtitulo.textContent = cargo;
+                        listaCandidatosDiv.appendChild(subtitulo);
+                        candidatosANomear.forEach(candidato => {
+                            const label = document.createElement('label');
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.name = 'candidato_ids';
+                            checkbox.value = candidato[0];
+                            label.appendChild(checkbox);
+                            label.appendChild(document.createTextNode(` ${candidato[5]}º - ${candidato[1]}`));
+                            listaCandidatosDiv.appendChild(label);
+                        });
+                    }
+                }
+                 if(listaCandidatosDiv.innerHTML === ''){
+                    listaCandidatosDiv.innerHTML = '<p>Não há candidatos a nomear neste edital.</p>';
+                }
             }
-            if (event.target == candidatoModal) {
-                closeCandidatoModal();
-            }
-            if (event.target == loteModal) {
-                closeLoteModal();
-            }
+            nomearLoteModal.classList.add('active');
         }
-        document.addEventListener('DOMContentLoaded', () => {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(function(alert) {
-            setTimeout(function() {
-                // Inicia a animação de fade out
-                alert.style.opacity = '0';
-                
-                // Remove o elemento da tela após a animação
-                setTimeout(function() {
-                    alert.style.display = 'none';
-                }, 500); // Tempo igual à transição do CSS
-            }, 3000); // 3000ms = 3 segundos
+        function closeNomearLoteModal() {
+            nomearLoteModal.classList.remove('active');
+            checkboxSelecionarTodos.checked = false;
+        }
+        checkboxSelecionarTodos.addEventListener('change', function() {
+            const todosOsCheckboxes = listaCandidatosDiv.querySelectorAll('input[type="checkbox"]');
+            todosOsCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
         });
-    });
+
+        window.onclick = function(event) {
+            if (event.target == editalModal) closeEditalModal();
+            if (event.target == candidatoModal) closeCandidatoModal();
+            if (event.target == loteModal) closeLoteModal();
+            if (event.target == nomearLoteModal) closeNomearLoteModal();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.style.display = 'none';
+                    }, 500);
+                }, 3000);
+            });
+        });
     </script>
 </body>
 </html>

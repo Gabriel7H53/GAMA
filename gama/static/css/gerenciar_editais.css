@@ -247,3 +247,42 @@
     .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
     .form-row .form-group { margin-bottom: 1rem; }
 }
+
+/* Adicionar ao final de gama/static/css/gerenciar_editais.css */
+
+.candidato-list-container {
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #f9fafb;
+}
+
+.candidato-list-container label {
+    display: block;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.candidato-list-container label:hover {
+    background-color: #f1f5f9;
+}
+
+.candidato-list-container input[type="checkbox"] {
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.candidato-list-container .cargo-subtitle {
+    font-weight: bold;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+}
+
+.candidato-list-container .cargo-subtitle:first-child {
+    margin-top: 0;
+}

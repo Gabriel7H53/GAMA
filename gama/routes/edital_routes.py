@@ -252,3 +252,33 @@ def adicionar_lote(id_edital):
         flash(f'Ocorreu um erro ao processar o arquivo: {e}', 'error')
 
     return redirect(url_for('edital.painel'))
+
+# Adicione esta nova rota ao final do arquivo gama/routes/edital_routes.py
+
+@edital_bp.route('/<int:id_edital>/candidato/nomear_lote', methods=['POST'])
+def nomear_lote(id_edital):
+    if not check_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('auth.login'))
+
+    data_posse = request.form.get('data_posse_lote')
+    # request.form.getlist() é usado para obter todos os valores de checkboxes com o mesmo nome
+    ids_candidatos_selecionados = request.form.getlist('candidato_ids')
+
+    if not data_posse:
+        flash('A data de posse é obrigatória.', 'error')
+        return redirect(url_for('edital.painel'))
+
+    if not ids_candidatos_selecionados:
+        flash('Nenhum candidato foi selecionado.', 'error')
+        return redirect(url_for('edital.painel'))
+
+    nomeados_com_sucesso = 0
+    for id_candidato in ids_candidatos_selecionados:
+        if Candidato.nomear(id_candidato, data_posse):
+            nomeados_com_sucesso += 1
+    
+    if nomeados_com_sucesso > 0:
+        flash(f'{nomeados_com_sucesso} candidato(s) nomeado(s) com sucesso para a data de {data_posse}!', 'success')
+
+    return redirect(url_for('edital.painel'))
