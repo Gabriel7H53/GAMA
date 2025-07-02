@@ -9,7 +9,7 @@ import io
 edital_bp = Blueprint('edital', __name__, template_folder='../templates')
 
 def check_admin():
-    return 'usuario_id' in session and session.get('tipo') == 'administrador'
+    return 'usuario_id' in session and session.get('tipo') == 'administrador' or 'usuario'
 
 # --- FUNÇÃO PAINEL ATUALIZADA ---
 # Sua função 'painel' adaptada com a nova lógica
@@ -203,6 +203,7 @@ def adicionar_lote(id_edital):
         return redirect(url_for('edital.painel'))
 
     arquivo = request.files['planilha']
+
     if arquivo.filename == '':
         flash('Nenhum arquivo selecionado.', 'error')
         return redirect(url_for('edital.painel'))
@@ -212,41 +213,79 @@ def adicionar_lote(id_edital):
         return redirect(url_for('edital.painel'))
 
     try:
-        stream = io.StringIO(arquivo.stream.read().decode("windows-1252"), newline=None)
+        stream = io.StringIO(arquivo.stream.read().decode("utf-8"), newline=None)
         reader = csv.reader(stream)
-        next(reader, None)
-        ultima_classificacao = Candidato.get_max_classificacao(id_edital)
-        candidatos_adicionados = 0
-        erros = []
+        next(reader, None) # Pula o cabeçalho
 
+        candidatos_lidos = []
+        erros_leitura = []
+
+        # Etapa 1: Ler e validar todas as linhas do arquivo primeiro
         for i, linha in enumerate(reader):
             if len(linha) < 4:
-                erros.append(f"Linha {i+2}: formato inválido.")
+                erros_leitura.append(f"Linha {i+2}: formato inválido (esperadas 4 colunas).")
                 continue
+            
             nome, inscricao, nota_str, nome_cargo = linha
             try:
                 nota = float(nota_str.replace(',', '.'))
-                classificacao_atual = ultima_classificacao + i + 1
-                id_cargo = Cargo.get_or_create(id_edital, nome_cargo.strip())
-                Candidato.create(
-                    id_edital=id_edital, id_cargo=id_cargo, nome=nome.strip(),
-                    inscricao=inscricao.strip(), nota=nota, classificacao=classificacao_atual,
-                    pcd=False, cotista=False, situacao='homologado', data_posse=None
-                )
-                candidatos_adicionados += 1
+                candidatos_lidos.append({
+                    'nome': nome.strip(),
+                    'inscricao': inscricao.strip(),
+                    'nota': nota,
+                    'nome_cargo': nome_cargo.strip()
+                })
             except ValueError:
-                erros.append(f"Linha {i+2}: nota '{nota_str}' inválida.")
+                erros_leitura.append(f"Linha {i+2}: a nota '{nota_str}' não é um número válido.")
+
+        if erros_leitura:
+            flash('Erros encontrados no arquivo: ' + " | ".join(erros_leitura), 'error')
+            return redirect(url_for('edital.painel'))
+
+        # Etapa 2: Agrupar os candidatos lidos por cargo
+        candidatos_por_cargo = defaultdict(list)
+        for candidato in candidatos_lidos:
+            candidatos_por_cargo[candidato['nome_cargo']].append(candidato)
+        
+        # Etapa 3: Inserir os candidatos no banco, cargo por cargo
+        candidatos_adicionados = 0
+        erros_insercao = []
+
+        for nome_cargo, lista_candidatos in candidatos_por_cargo.items():
+            try:
+                # Para cada novo cargo, busca a última classificação existente no banco
+                id_cargo = Cargo.get_or_create(id_edital, nome_cargo)
+                ultima_classificacao = Candidato.get_max_classificacao(id_edital, id_cargo) # Supondo que a função foi adaptada
+                
+                # Inicia a contagem a partir do último classificado + 1
+                classificacao_counter = ultima_classificacao + 1
+
+                for candidato in lista_candidatos:
+                    Candidato.create(
+                        id_edital=id_edital,
+                        id_cargo=id_cargo,
+                        nome=candidato['nome'],
+                        inscricao=candidato['inscricao'],
+                        nota=candidato['nota'],
+                        classificacao=classificacao_counter,
+                        pcd=False, cotista=False, situacao='homologado', data_posse=None
+                    )
+                    candidatos_adicionados += 1
+                    classificacao_counter += 1
+            
             except Exception as e:
-                erros.append(f"Linha {i+2} ({nome}): {e}")
+                erros_insercao.append(f"Cargo '{nome_cargo}': {e}")
 
+        # Mensagens de feedback
         if candidatos_adicionados > 0:
-            flash(f'{candidatos_adicionados} candidatos adicionados!', 'success')
-        if erros:
-            flash(f'Ocorreram {len(erros)} erros: ' + " | ".join(erros), 'error')
-    except Exception as e:
-        flash(f'Erro ao processar o arquivo: {e}', 'error')
-    return redirect(url_for('edital.painel'))
+            flash(f'{candidatos_adicionados} candidatos adicionados com sucesso!', 'success')
+        if erros_insercao:
+            flash(f'Ocorreram erros durante a inserção: ' + " | ".join(erros_insercao), 'error')
 
+    except Exception as e:
+        flash(f'Ocorreu um erro fatal ao processar o arquivo: {e}', 'error')
+
+    return redirect(url_for('edital.painel'))
 
 @edital_bp.route('/<int:id_edital>/candidato/nomear_lote', methods=['POST'])
 def nomear_lote(id_edital):

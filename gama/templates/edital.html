@@ -20,7 +20,7 @@
                     {% if session.get('tipo') == 'administrador' %}
                         <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="#" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -47,110 +47,70 @@
 
             {% for edital in editais %}
             <div class="edital-card" id="edital-{{ edital[0] }}">
-                <div class="edital-header" onclick="toggleEditalBody('{{ edital[0] }}')">
+                <div class="edital-header" onclick="toggleContent('body-edital-{{ edital[0] }}', this)">
                     <div class="edital-info">
                         <strong>{{ edital[1] }}</strong>
                         {% set status_vencimento = edital[7] %}
                         <span class="status-vencimento {{ status_vencimento }}" title="Data de Vencimento">
                             <i class="fas fa-calendar-times"></i> {{ edital[4] }}
-                            {% if status_vencimento == 'proximo' %}
-                                <span class="aviso-lateral proximo">Próximo de vencer</span>
-                            {% elif status_vencimento == 'vencido' %}
-                                <span class="aviso-lateral vencido">Vencido</span>
-                            {% endif %}
+                            {% if status_vencimento == 'proximo' %}<span class="aviso-lateral proximo">Próximo de vencer</span>{% endif %}
+                            {% if status_vencimento == 'vencido' %}<span class="aviso-lateral vencido">Vencido</span>{% endif %}
                         </span>
                         <span title="Status">
-                            {% if edital[6] == 'ativo' %}
-                                <span class="badge badge-success">Ativo</span>
-                            {% elif edital[6] == 'inativo' %}
-                                <span class="badge badge-danger">Inativo</span>
-                            {% else %}
-                                <span class="badge badge-warning">Prorrogado</span>
-                            {% endif %}
+                            {% if edital[6] == 'ativo' %}<span class="badge badge-success">Ativo</span>
+                            {% elif edital[6] == 'inativo' %}<span class="badge badge-danger">Inativo</span>
+                            {% else %}<span class="badge badge-warning">Prorrogado</span>{% endif %}
                         </span>
                     </div>
                     <div class="actions">
-                        <button class="icon-button" title="Nomear em Lote" onclick="event.stopPropagation(); openNomearLoteModal({{ edital[0] }});">
-                            <i class="fas fa-user-check"></i>
-                        </button>
-                        <button class="icon-button" title="Adicionar em Lote" onclick="event.stopPropagation(); openLoteModal({{ edital[0] }});">
-                            <i class="fas fa-file-upload"></i>
-                        </button>
+                        <button class="icon-button" title="Nomear em Lote" onclick="event.stopPropagation(); openNomearLoteModal({{ edital[0] }});"><i class="fas fa-user-check"></i></button>
+                        <button class="icon-button" title="Adicionar em Lote" onclick="event.stopPropagation(); openLoteModal({{ edital[0] }});"><i class="fas fa-file-upload"></i></button>
                         <button class="icon-button" title="Adicionar Candidato" onclick="event.stopPropagation(); openCandidatoModal(null, {{ edital[0] }});"><i class="fas fa-user-plus"></i></button>
-                        <button class="icon-button" title="Editar Edital"
-                                data-edital='{{ edital|tojson }}'
-                                onclick="event.stopPropagation(); openEditalModal(this)">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <form action="{{ url_for('edital.remover_edital', id_edital=edital[0]) }}" method="POST" onsubmit="return confirm('Atenção! Remover este edital também removerá todos os seus cargos e candidatos. Deseja continuar?');" style="display: inline;">
+                        <button class="icon-button" title="Editar Edital" data-edital='{{ edital|tojson }}' onclick="event.stopPropagation(); openEditalModal(this)"><i class="fas fa-edit"></i></button>
+                        <form action="{{ url_for('edital.remover_edital', id_edital=edital[0]) }}" method="POST" onsubmit="return confirm('Atenção! Isso removerá o edital e todos os seus candidatos. Deseja continuar?');" style="display: inline;">
                             <button type="submit" class="icon-button" title="Remover Edital"><i class="fas fa-trash-alt"></i></button>
                         </form>
                     </div>
                 </div>
-                <div class="edital-body" id="body-{{ edital[0] }}">
+                <div class="edital-body" id="body-edital-{{ edital[0] }}">
                     {% set candidatos_por_cargo = candidatos_por_edital_agrupado.get(edital[0], {}) %}
                     {% if candidatos_por_cargo %}
                         {% for cargo_nome, lista_de_candidatos in candidatos_por_cargo.items() %}
                             <div class="cargo-group">
-                                <h4 class="cargo-title">{{ cargo_nome }}</h4>
-                                <table class="edital-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Class.</th>
-                                            <th>Nome</th>
-                                            <th>Inscrição</th>
-                                            <th>Nota</th>
-                                            <th>Situação</th>
-                                            <th>Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for candidato in lista_de_candidatos %}
-                                        <tr>
-                                            <td>{{ candidato[5] }}º</td>
-                                            <td>
-                                                {{ candidato[1] }}
-                                                {% if candidato[6] %}<span class="badge badge-info">PCD</span>{% endif %}
-                                                {% if candidato[7] %}<span class="badge badge-info">Cotista</span>{% endif %}
-                                            </td>
-                                            <td>{{ candidato[2] }}</td>
-                                            <td>{{ "%.2f"|format(candidato[3]) }}</td>
-                                            <td>
-                                                {% if candidato[8] == 'nomeado' %}Nomeado
-                                                {% elif candidato[8] == 'homologado' %}Homologado
-                                                {% elif candidato[8] == 'sem_efeito' %}Sem Efeito
-                                                {% else %}{{ candidato[8] }}{% endif %}
-                                            </td>
-                                            <td class="actions">
-                                                <button class="icon-button" title="Editar Candidato"
-                                                        data-candidato='{{ candidato|tojson }}'
-                                                        onclick="openCandidatoModal(this)">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <form action="{{ url_for('edital.remover_candidato', id_candidato=candidato[0]) }}" method="POST" onsubmit="return confirm('Deseja remover este candidato?');" style="display:inline;">
-                                                    <button type="submit" class="icon-button" title="Remover Candidato"><i class="fas fa-trash-alt"></i></button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
+                                <div class="cargo-header" onclick="event.stopPropagation(); toggleContent('body-cargo-{{ edital[0] }}-{{ loop.index }}', this)">
+                                    <h4 class="cargo-title">{{ cargo_nome }}</h4>
+                                </div>
+                                <div class="cargo-body" id="body-cargo-{{ edital[0] }}-{{ loop.index }}">
+                                    <table class="edital-table">
+                                        <thead><tr><th>Class.</th><th>Nome</th><th>Inscrição</th><th>Nota</th><th>Situação</th><th>Ações</th></tr></thead>
+                                        <tbody>
+                                        {% for candidato in lista_de_candidatos %}
+                                            <tr>
+                                                <td>{{ candidato[5] }}º</td>
+                                                <td>{{ candidato[1] }}{% if candidato[6] %}<span class="badge badge-info">PCD</span>{% endif %}{% if candidato[7] %}<span class="badge badge-info">Cotista</span>{% endif %}</td>
+                                                <td>{{ candidato[2] }}</td>
+                                                <td>{{ "%.2f"|format(candidato[3]) }}</td>
+                                                <td>{% if candidato[8] == 'nomeado' %}Nomeado{% elif candidato[8] == 'homologado' %}Homologado{% elif candidato[8] == 'sem_efeito' %}Sem Efeito{% else %}{{ candidato[8] }}{% endif %}</td>
+                                                <td class="actions">
+                                                    <button class="icon-button" title="Editar Candidato" data-candidato='{{ candidato|tojson }}' onclick="openCandidatoModal(this)"><i class="fas fa-edit"></i></button>
+                                                    <form action="{{ url_for('edital.remover_candidato', id_candidato=candidato[0]) }}" method="POST" onsubmit="return confirm('Deseja remover este candidato?');" style="display:inline;">
+                                                        <button type="submit" class="icon-button" title="Remover Candidato"><i class="fas fa-trash-alt"></i></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         {% endfor %}
                     {% else %}
-                        <div class="empty-state">
-                            <i class="fas fa-users-slash"></i>
-                            <p>Nenhum candidato cadastrado para este edital.</p>
-                            <button class="btn btn-secondary" onclick="openCandidatoModal(null, {{ edital[0] }})">Adicionar Candidato</button>
-                        </div>
+                        <div class="empty-state"><i class="fas fa-users-slash"></i><p>Nenhum candidato cadastrado.</p><button class="btn btn-secondary" onclick="openCandidatoModal(null, {{ edital[0] }})">Adicionar Candidato</button></div>
                     {% endif %}
                 </div>
             </div>
             {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-file-excel"></i>
-                    <p>Nenhum edital encontrado. Comece adicionando um novo.</p>
-                </div>
+                <div class="empty-state"><i class="fas fa-file-excel"></i><p>Nenhum edital encontrado.</p></div>
             {% endfor %}
         </main>
     </div>
@@ -299,6 +259,16 @@
             body.classList.toggle('active');
         }
 
+        function toggleContent(elementId, headerElement) {
+            const body = document.getElementById(elementId);
+            if (body) {
+                body.classList.toggle('active');
+            }
+            if (headerElement) {
+                headerElement.classList.toggle('active');
+            }
+        }
+
         const editalModal = document.getElementById('editalModal');
         const editalForm = document.getElementById('editalForm');
         function openEditalModal(buttonElement) {
@@ -371,33 +341,55 @@
         function openNomearLoteModal(id_edital) {
             nomearLoteForm.action = `/edital/${id_edital}/candidato/nomear_lote`;
             listaCandidatosDiv.innerHTML = '';
+            
             const candidatosDoEdital = todosOsCandidatosSimples[id_edital] || [];
             const candidatosANomear = candidatosDoEdital.filter(c => c[8] === 'homologado');
+
             if (candidatosANomear.length === 0) {
                 listaCandidatosDiv.innerHTML = '<p>Não há candidatos homologados para nomear neste edital.</p>';
-            } else {
-                candidatosANomear.forEach(candidato => {
+                return; // Encerra a função aqui se não houver candidatos
+            }
+            
+            // Etapa 1: Agrupar candidatos por cargo
+            const candidatosPorCargo = {};
+            candidatosANomear.forEach(candidato => {
+                const nomeCargo = candidato[11];
+                if (!candidatosPorCargo[nomeCargo]) {
+                    candidatosPorCargo[nomeCargo] = [];
+                }
+                candidatosPorCargo[nomeCargo].push(candidato);
+            });
+
+            // Etapa 2: Construir o HTML agrupado
+            for (const cargo in candidatosPorCargo) {
+                const subtitulo = document.createElement('h5');
+                subtitulo.className = 'cargo-subtitle';
+                subtitulo.textContent = cargo;
+                listaCandidatosDiv.appendChild(subtitulo);
+
+                candidatosPorCargo[cargo].forEach(candidato => {
                     const label = document.createElement('label');
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.name = 'candidato_ids';
                     checkbox.value = candidato[0];
                     label.appendChild(checkbox);
-                    label.appendChild(document.createTextNode(` ${candidato[5]}º - ${candidato[1]} (${candidato[11]})`));
+                    label.appendChild(document.createTextNode(` ${candidato[5]}º - ${candidato[1]}`));
                     listaCandidatosDiv.appendChild(label);
                 });
             }
+
             nomearLoteModal.classList.add('active');
         }
+
         function closeNomearLoteModal() {
             nomearLoteModal.classList.remove('active');
             checkboxSelecionarTodos.checked = false;
         }
+
         checkboxSelecionarTodos.addEventListener('change', function() {
             const todosOsCheckboxes = listaCandidatosDiv.querySelectorAll('input[type="checkbox"]');
-            todosOsCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
+            todosOsCheckboxes.forEach(checkbox => { checkbox.checked = this.checked; });
         });
 
         window.onclick = function(event) {

@@ -181,14 +181,23 @@ class Candidato:
             conn.close()
 
     @staticmethod
-    def get_max_classificacao(id_edital):
-        """Busca o maior número de classificação para um determinado edital."""
+    def get_max_classificacao(id_edital, id_cargo=None):
+        """
+        Busca o maior número de classificação para um edital.
+        Se id_cargo for fornecido, a busca é filtrada por esse cargo.
+        """
         conn = conectar()
         cursor = conn.cursor()
         try:
-            cursor.execute("SELECT MAX(classificacao) FROM Candidato WHERE id_edital = ?", (id_edital,))
+            query = "SELECT MAX(classificacao) FROM Candidato WHERE id_edital = ?"
+            params = (id_edital,)
+            
+            if id_cargo:
+                query += " AND id_cargo = ?"
+                params = (id_edital, id_cargo)
+
+            cursor.execute(query, params)
             resultado = cursor.fetchone()
-            # Retorna o máximo encontrado, ou 0 se não houver nenhum candidato.
             return resultado[0] if resultado and resultado[0] is not None else 0
         except sqlite3.Error as e:
             print(f"Erro ao buscar classificação máxima: {e}")

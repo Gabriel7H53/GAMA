@@ -6,7 +6,6 @@
     font-size: 1.75rem;
 }
 
-/* REGRA ATUALIZADA */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -70,9 +69,13 @@
     transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
 }
 
+/* ====================================================== */
+/* AQUI ESTÁ A CORREÇÃO                                   */
+/* ====================================================== */
 .edital-body.active {
     padding: 1.5rem;
-    max-height: 1500px; /* Aumentado para comportar múltiplos cargos */
+    max-height: 1500px;
+    overflow-y: auto; /* Alterado de 'hidden' (implícito) para 'auto' */
 }
 
 /* Badges */
@@ -90,15 +93,11 @@
 .badge-info { background: #dbeafe; color: #1e40af; }
 
 
-/* ====================================================== */
-/* ALTERAÇÕES NA TABELA DE CANDIDATOS            */
-/* ====================================================== */
-
+/* Tabela de Candidatos */
 .edital-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
-    /* 1. Força a tabela a obedecer as larguras definidas, ignorando o conteúdo */
     table-layout: fixed; 
 }
 
@@ -107,10 +106,8 @@
     text-align: left;
     border-bottom: 1px solid #e5e7eb;
     font-size: 0.875rem;
-    /* 2. Impede que o texto quebre em várias linhas */
     white-space: nowrap;
     overflow: hidden;
-    /* 3. Adiciona "..." se o texto for muito longo para a coluna */
     text-overflow: ellipsis;
 }
 
@@ -122,20 +119,15 @@
 
 .edital-table tr:last-child td { border-bottom: none; }
 
-/* 4. Define a largura em porcentagem para cada coluna */
-.edital-table th:nth-child(1) { width: 8%; }  /* Classificação */
-.edital-table th:nth-child(2) { width: 38%; } /* Nome (maior coluna) */
-.edital-table th:nth-child(3) { width: 15%; } /* Inscrição */
-.edital-table th:nth-child(4) { width: 9%; }  /* Nota */
-.edital-table th:nth-child(5) { width: 14%; } /* Situação */
-.edital-table th:nth-child(6) { width: 16%; } /* Ações */
+.edital-table th:nth-child(1) { width: 8%; }
+.edital-table th:nth-child(2) { width: 38%; }
+.edital-table th:nth-child(3) { width: 15%; }
+.edital-table th:nth-child(4) { width: 9%; }
+.edital-table th:nth-child(5) { width: 14%; }
+.edital-table th:nth-child(6) { width: 16%; }
 
 
-/* ====================================================== */
-/* OUTROS ESTILOS (NENHUMA ALTERAÇÃO ABAIXO)       */
-/* ====================================================== */
-
-/* Modal styles */
+/* Outros Estilos */
 .modal {
     display: none;
     position: fixed;
@@ -192,7 +184,6 @@
 .form-check input { width: auto; }
 .form-help { font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem; display: block; }
 
-/* Buttons & Actions */
 .actions { display: flex; gap: 0.5rem; align-items: center; }
 .icon-button {
     background: none; border: none;
@@ -204,7 +195,6 @@
 .icon-button:hover { color: var(--primary); }
 .icon-button .fa-trash-alt:hover { color: var(--danger); }
 
-/* Empty state */
 .empty-state {
     text-align: center;
     padding: 3rem 1.5rem;
@@ -220,7 +210,6 @@
 }
 .empty-state p { margin-bottom: 1.5rem; }
 
-/* Cargo Grouping Styles */
 .cargo-group {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
@@ -240,15 +229,36 @@
     margin-bottom: 1rem;
 }
 
-
-/* Responsive */
-@media (max-width: 768px) {
-    .edital-header { flex-direction: column; align-items: flex-start; }
-    .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
-    .form-row .form-group { margin-bottom: 1rem; }
+.status-vencimento {
+    display: flex;
+    align-items: center;
 }
-
-/* Adicionar ao final de gama/static/css/gerenciar_editais.css */
+.status-vencimento.proximo {
+    color: #b45309;
+    font-weight: 500;
+}
+.status-vencimento.vencido {
+    color: #b91c1c;
+    font-weight: 500;
+    text-decoration: line-through;
+}
+.aviso-lateral {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.aviso-lateral.proximo {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+.aviso-lateral.vencido {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
 
 .candidato-list-container {
     max-height: 350px;
@@ -287,33 +297,54 @@
     margin-top: 0;
 }
 
-.status-vencimento {
+.cargo-header {
+    cursor: pointer;
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    transition: background-color 0.2s;
     display: flex;
+    justify-content: space-between;
     align-items: center;
 }
-.status-vencimento.proximo {
-    color: #b45309;
-    font-weight: 500;
+
+.cargo-header:hover {
+    background-color: #e9ecef;
 }
-.status-vencimento.vencido {
-    color: #b91c1c;
-    font-weight: 500;
-    text-decoration: line-through;
+
+.cargo-header .cargo-title {
+    margin-bottom: 0; /* Remove a margem do h4 que já existia */
 }
-.aviso-lateral {
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-left: 0.75rem;
-    padding: 0.15rem 0.5rem;
-    border-radius: 9999px;
-    text-transform: uppercase;
-    white-space: nowrap;
+
+/* Adiciona uma seta para indicar que é expansível */
+.cargo-header::after {
+    content: '\25BC'; /* Código do caractere de seta para baixo */
+    font-size: 0.8rem;
+    transition: transform 0.3s;
 }
-.aviso-lateral.proximo {
-    background-color: #fef3c7;
-    color: #92400e;
+
+.cargo-header.active::after {
+    transform: rotate(180deg); /* Gira a seta quando ativo */
 }
-.aviso-lateral.vencido {
-    background-color: #fee2e2;
-    color: #991b1b;
+
+.cargo-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+    padding: 0 0.5rem;
 }
+
+.cargo-body.active {
+    max-height: 2000px; /* Altura máxima para a lista de candidatos */
+    overflow-y: auto; /* Adiciona scroll se a lista for muito grande */
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .edital-header { flex-direction: column; align-items: flex-start; }
+    .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
+    .form-row .form-group { margin-bottom: 1rem; }
+}
+
