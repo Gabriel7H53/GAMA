@@ -50,11 +50,9 @@
                 <div class="edital-header" onclick="toggleEditalBody('{{ edital[0] }}')">
                     <div class="edital-info">
                         <strong>{{ edital[1] }}</strong>
-
-                        {% set status_vencimento = edital[7] %} {# O status que adicionamos está no índice 7 #}
+                        {% set status_vencimento = edital[7] %}
                         <span class="status-vencimento {{ status_vencimento }}" title="Data de Vencimento">
                             <i class="fas fa-calendar-times"></i> {{ edital[4] }}
-                            
                             {% if status_vencimento == 'proximo' %}
                                 <span class="aviso-lateral proximo">Próximo de vencer</span>
                             {% elif status_vencimento == 'vencido' %}
@@ -67,7 +65,6 @@
                             {% elif edital[6] == 'inativo' %}
                                 <span class="badge badge-danger">Inativo</span>
                             {% else %}
-                                <span class="badge badge-success">Ativo</span>
                                 <span class="badge badge-warning">Prorrogado</span>
                             {% endif %}
                         </span>
@@ -91,7 +88,7 @@
                     </div>
                 </div>
                 <div class="edital-body" id="body-{{ edital[0] }}">
-                    {% set candidatos_por_cargo = candidatos_por_edital.get(edital[0], {}) %}
+                    {% set candidatos_por_cargo = candidatos_por_edital_agrupado.get(edital[0], {}) %}
                     {% if candidatos_por_cargo %}
                         {% for cargo_nome, lista_de_candidatos in candidatos_por_cargo.items() %}
                             <div class="cargo-group">
@@ -118,7 +115,12 @@
                                             </td>
                                             <td>{{ candidato[2] }}</td>
                                             <td>{{ "%.2f"|format(candidato[3]) }}</td>
-                                            <td>{{ 'Nomeado' if candidato[8] == 'nomeado' else 'A Nomear' }}</td>
+                                            <td>
+                                                {% if candidato[8] == 'nomeado' %}Nomeado
+                                                {% elif candidato[8] == 'homologado' %}Homologado
+                                                {% elif candidato[8] == 'sem_efeito' %}Sem Efeito
+                                                {% else %}{{ candidato[8] }}{% endif %}
+                                            </td>
                                             <td class="actions">
                                                 <button class="icon-button" title="Editar Candidato"
                                                         data-candidato='{{ candidato|tojson }}'
@@ -216,7 +218,21 @@
                     <div class="form-group"><label for="nome">Nome Completo</label><input type="text" id="nome" name="nome" required></div>
                     <div class="form-row"><div class="form-group"><label for="numero_inscricao">Nº Inscrição</label><input type="text" id="numero_inscricao" name="numero_inscricao" required></div><div class="form-group"><label for="nome_cargo">Cargo</label><input type="text" id="nome_cargo" name="nome_cargo" required></div></div>
                     <div class="form-row"><div class="form-group"><label for="nota">Nota Final</label><input type="number" step="0.01" id="nota" name="nota" required></div><div class="form-group"><label for="classificacao">Classificação</label><input type="number" id="classificacao" name="classificacao" required></div></div>
-                    <div class="form-row"><div class="form-group"><label for="situacao">Situação</label><select id="situacao" name="situacao" required><option value="a_nomear">A Nomear</option><option value="nomeado">Nomeado</option></select></div><div class="form-group"><label for="data_posse">Data da Posse</label><input type="date" id="data_posse" name="data_posse"><small class="form-help">Preencha apenas se a situação for "Nomeado".</small></div></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="situacao">Situação</label>
+                            <select id="situacao" name="situacao" required>
+                                <option value="homologado">Homologado</option>
+                                <option value="nomeado">Nomeado</option>
+                                <option value="sem_efeito">Tornado Sem Efeito</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="data_posse">Data da Posse</label>
+                            <input type="date" id="data_posse" name="data_posse">
+                            <small class="form-help">Preencha apenas se a situação for "Nomeado".</small>
+                        </div>
+                    </div>
                     <div class="form-check-group"><div class="form-check"><input type="checkbox" id="pcd" name="pcd"><label for="pcd">Candidato PCD</label></div><div class="form-check"><input type="checkbox" id="cotista" name="cotista"><label for="cotista">Candidato Cotista</label></div></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeCandidatoModal()">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
@@ -265,7 +281,7 @@
                         <input type="checkbox" id="selecionarTodosCandidatos"> <strong>Selecionar todos</strong>
                     </label>
                     <div id="listaCandidatosNomear" class="candidato-list-container">
-                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeNomearLoteModal()">Cancelar</button>
@@ -275,9 +291,8 @@
         </div>
     </div>
 
-
     <script>
-        const todosOsCandidatos = {{ candidatos_por_edital|tojson }};
+        const todosOsCandidatosSimples = {{ candidatos_por_edital_simples|tojson }};
 
         function toggleEditalBody(id) {
             const body = document.getElementById(`body-${id}`);
@@ -356,32 +371,21 @@
         function openNomearLoteModal(id_edital) {
             nomearLoteForm.action = `/edital/${id_edital}/candidato/nomear_lote`;
             listaCandidatosDiv.innerHTML = '';
-            const candidatosDoEdital = todosOsCandidatos[id_edital] || {};
-            if (Object.keys(candidatosDoEdital).length === 0) {
-                listaCandidatosDiv.innerHTML = '<p>Não há candidatos a nomear neste edital.</p>';
+            const candidatosDoEdital = todosOsCandidatosSimples[id_edital] || [];
+            const candidatosANomear = candidatosDoEdital.filter(c => c[8] === 'homologado');
+            if (candidatosANomear.length === 0) {
+                listaCandidatosDiv.innerHTML = '<p>Não há candidatos homologados para nomear neste edital.</p>';
             } else {
-                for (const cargo in candidatosDoEdital) {
-                    const candidatosANomear = candidatosDoEdital[cargo].filter(c => c[8] === 'a_nomear');
-                    if (candidatosANomear.length > 0) {
-                        const subtitulo = document.createElement('h5');
-                        subtitulo.className = 'cargo-subtitle';
-                        subtitulo.textContent = cargo;
-                        listaCandidatosDiv.appendChild(subtitulo);
-                        candidatosANomear.forEach(candidato => {
-                            const label = document.createElement('label');
-                            const checkbox = document.createElement('input');
-                            checkbox.type = 'checkbox';
-                            checkbox.name = 'candidato_ids';
-                            checkbox.value = candidato[0];
-                            label.appendChild(checkbox);
-                            label.appendChild(document.createTextNode(` ${candidato[5]}º - ${candidato[1]}`));
-                            listaCandidatosDiv.appendChild(label);
-                        });
-                    }
-                }
-                 if(listaCandidatosDiv.innerHTML === ''){
-                    listaCandidatosDiv.innerHTML = '<p>Não há candidatos a nomear neste edital.</p>';
-                }
+                candidatosANomear.forEach(candidato => {
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = 'candidato_ids';
+                    checkbox.value = candidato[0];
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(` ${candidato[5]}º - ${candidato[1]} (${candidato[11]})`));
+                    listaCandidatosDiv.appendChild(label);
+                });
             }
             nomearLoteModal.classList.add('active');
         }

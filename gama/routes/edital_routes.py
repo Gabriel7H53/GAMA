@@ -19,10 +19,8 @@ def painel():
         flash('Acesso negado. Apenas administradores podem gerenciar editais.', 'error')
         return redirect(url_for('auth.login'))
 
-    # Pega os editais do banco
     editais_raw = Edital.get_all()
     
-    # --- NOVA LÓGICA PARA VERIFICAR O VENCIMENTO ---
     editais_com_status_vencimento = []
     hoje = date.today()
     tres_meses_frente = hoje + timedelta(days=90)
@@ -30,7 +28,6 @@ def painel():
     for edital_tuple in editais_raw:
         edital_lista = list(edital_tuple)
         status_vencimento = 'ok'
-        
         try:
             data_vencimento = datetime.strptime(edital_lista[4], '%Y-%m-%d').date()
             if data_vencimento < hoje:
@@ -39,29 +36,27 @@ def painel():
                 status_vencimento = 'proximo'
         except (ValueError, TypeError):
             pass
-        
         edital_lista.append(status_vencimento)
         editais_com_status_vencimento.append(edital_lista)
-    # --- FIM DA NOVA LÓGICA ---
 
-    candidatos_por_edital = {}
-    
-    # A partir daqui, usamos a nova lista 'editais_com_status_vencimento'
+    candidatos_agrupados = {}
+    candidatos_simples = {}
+
     for edital in editais_com_status_vencimento:
         todos_candidatos_do_edital = Candidato.get_by_edital(edital[0])
-        
+        candidatos_simples[edital[0]] = todos_candidatos_do_edital
         candidatos_agrupados_por_cargo = defaultdict(list)
         for candidato in todos_candidatos_do_edital:
             nome_cargo = candidato[11]
             candidatos_agrupados_por_cargo[nome_cargo].append(candidato)
-            
-        candidatos_por_edital[edital[0]] = dict(sorted(candidatos_agrupados_por_cargo.items()))
+        candidatos_agrupados[edital[0]] = dict(sorted(candidatos_agrupados_por_cargo.items()))
 
     return render_template(
         'edital.html', 
         nome=session.get('nome'), 
-        editais=editais_com_status_vencimento, # Enviando a lista atualizada
-        candidatos_por_edital=candidatos_por_edital
+        editais=editais_com_status_vencimento,
+        candidatos_por_edital_agrupado=candidatos_agrupados,
+        candidatos_por_edital_simples=candidatos_simples
     )
 
 @edital_bp.route('/adicionar', methods=['POST'])
@@ -201,14 +196,13 @@ def remover_candidato(id_candidato):
 def adicionar_lote(id_edital):
     if not check_admin():
         flash('Acesso negado.', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('edital.painel'))
 
     if 'planilha' not in request.files:
         flash('Nenhum arquivo enviado.', 'error')
         return redirect(url_for('edital.painel'))
 
     arquivo = request.files['planilha']
-
     if arquivo.filename == '':
         flash('Nenhum arquivo selecionado.', 'error')
         return redirect(url_for('edital.painel'))
@@ -217,68 +211,42 @@ def adicionar_lote(id_edital):
         flash('Formato de arquivo inválido. Por favor, envie um arquivo .csv', 'error')
         return redirect(url_for('edital.painel'))
 
-    # Processamento do arquivo CSV
     try:
-        # Decodifica o arquivo em memória
         stream = io.StringIO(arquivo.stream.read().decode("windows-1252"), newline=None)
         reader = csv.reader(stream)
-
-        # Pula o cabeçalho (opcional, mas recomendado)
         next(reader, None)
-
-        # Busca a última classificação para continuar a sequência
         ultima_classificacao = Candidato.get_max_classificacao(id_edital)
-        
         candidatos_adicionados = 0
         erros = []
 
         for i, linha in enumerate(reader):
             if len(linha) < 4:
-                erros.append(f"Linha {i+2}: formato inválido (esperado 4 colunas).")
+                erros.append(f"Linha {i+2}: formato inválido.")
                 continue
-
             nome, inscricao, nota_str, nome_cargo = linha
-            
             try:
-                # Validação dos dados
                 nota = float(nota_str.replace(',', '.'))
                 classificacao_atual = ultima_classificacao + i + 1
-
-                # Cria ou obtém o ID do cargo
                 id_cargo = Cargo.get_or_create(id_edital, nome_cargo.strip())
-
-                # Adiciona o candidato com valores padrão
                 Candidato.create(
-                    id_edital=id_edital,
-                    id_cargo=id_cargo,
-                    nome=nome.strip(),
-                    inscricao=inscricao.strip(),
-                    nota=nota,
-                    classificacao=classificacao_atual,
-                    pcd=False,        # Valor padrão
-                    cotista=False,    # Valor padrão
-                    situacao='a_nomear', # Valor padrão
-                    data_posse=None   # Valor padrão
+                    id_edital=id_edital, id_cargo=id_cargo, nome=nome.strip(),
+                    inscricao=inscricao.strip(), nota=nota, classificacao=classificacao_atual,
+                    pcd=False, cotista=False, situacao='homologado', data_posse=None
                 )
                 candidatos_adicionados += 1
             except ValueError:
-                erros.append(f"Linha {i+2}: a nota '{nota_str}' não é um número válido.")
+                erros.append(f"Linha {i+2}: nota '{nota_str}' inválida.")
             except Exception as e:
                 erros.append(f"Linha {i+2} ({nome}): {e}")
 
-        # Mensagem de feedback
         if candidatos_adicionados > 0:
-            flash(f'{candidatos_adicionados} candidatos adicionados com sucesso!', 'success')
+            flash(f'{candidatos_adicionados} candidatos adicionados!', 'success')
         if erros:
-            msg_erro = f'Ocorreram {len(erros)} erros durante a importação: ' + " | ".join(erros)
-            flash(msg_erro, 'error')
-
+            flash(f'Ocorreram {len(erros)} erros: ' + " | ".join(erros), 'error')
     except Exception as e:
-        flash(f'Ocorreu um erro ao processar o arquivo: {e}', 'error')
-
+        flash(f'Erro ao processar o arquivo: {e}', 'error')
     return redirect(url_for('edital.painel'))
 
-# Adicione esta nova rota ao final do arquivo gama/routes/edital_routes.py
 
 @edital_bp.route('/<int:id_edital>/candidato/nomear_lote', methods=['POST'])
 def nomear_lote(id_edital):
