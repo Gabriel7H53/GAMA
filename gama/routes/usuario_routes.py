@@ -1,6 +1,9 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request, flash
+from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
 from werkzeug.security import generate_password_hash
 from gama.models.usuario import Usuario
+from gama.models.edital import Edital
+from gama.models.agendamento import Agendamento
+from gama.models.candidato import Candidato
 from datetime import datetime
 
 usuario_bp = Blueprint('usuarios', __name__, template_folder='../templates')
@@ -85,3 +88,92 @@ def editar_usuario():
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('usuarios.config_usuarios'))
+
+@usuario_bp.route('/agendamentos')
+def agendamentos():
+    # Proteção: Garante que o usuário esteja logado
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    todos_editais = Edital.get_all()
+    agendamentos_por_edital = {}
+
+    for edital in todos_editais:
+        id_edital = edital[0]
+        agendamentos_por_edital[id_edital] = Agendamento.get_by_edital(id_edital)
+
+    return render_template(
+        'agendamentos.html', 
+        nome=session.get('nome'), 
+        editais=todos_editais,
+        agendamentos_por_edital=agendamentos_por_edital
+    )
+
+
+@usuario_bp.route('/agendamento/criar', methods=['POST'])
+def criar_agendamento():
+    if 'usuario_id' not in session:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('auth.login'))
+
+    try:
+        id_edital = request.form['id_edital']
+        nome_pessoa = request.form['nome_pessoa']
+        data = request.form['data_agendamento']
+        hora = request.form['hora_agendamento']
+        
+        # Combina data e hora em um único objeto datetime
+        data_hora_agendamento = datetime.strptime(f"{data} {hora}", '%Y-%m-%d %H:%M')
+
+        id_usuario_logado = session['usuario_id']
+
+        success, message = Agendamento.create(id_edital, id_usuario_logado, data_hora_agendamento, nome_pessoa)
+        flash(message, 'success' if success else 'error')
+
+    except Exception as e:
+        flash(f"Ocorreu um erro ao processar sua solicitação: {e}", "error")
+
+    return redirect(url_for('usuarios.agendamentos'))
+
+@usuario_bp.route('/api/candidatos/search')
+def search_candidatos_api():
+    if 'usuario_id' not in session:
+        return jsonify({"error": "Acesso não autorizado"}), 401
+
+    query = request.args.get('query', '')
+    if len(query) < 2:
+        return jsonify([])
+
+    nomes = Candidato.search_by_name(query)
+    return jsonify(nomes)
+
+@usuario_bp.route('/agendamento/editar/<int:id_agendamento>', methods=['POST'])
+def editar_agendamento(id_agendamento):
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    try:
+        nome_pessoa = request.form['nome_pessoa']
+        data = request.form['data_agendamento']
+        hora = request.form['hora_agendamento']
+        status = request.form['status_agendamento'] # <-- Pega o novo campo do formulário
+        data_hora = datetime.strptime(f"{data} {hora}", '%Y-%m-%d %H:%M')
+
+        # Passa o status para o método de update
+        success, message = Agendamento.update(id_agendamento, data_hora, nome_pessoa, status)
+        flash(message, 'success' if success else 'error')
+    except Exception as e:
+        flash(f"Ocorreu um erro ao editar: {e}", "error")
+        
+    return redirect(url_for('usuarios.agendamentos'))
+
+
+@usuario_bp.route('/agendamento/remover/<int:id_agendamento>', methods=['POST'])
+def remover_agendamento(id_agendamento):
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    success, message = Agendamento.delete(id_agendamento)
+    flash(message, 'success' if success else 'error')
+    
+    return redirect(url_for('usuarios.agendamentos'))

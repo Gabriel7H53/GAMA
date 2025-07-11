@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamentos - GAMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="dashboard-header">
+            <nav class="dashboard-nav container">
+                <h1 class="dashboard-title">GAMA</h1>
+                <div class="dashboard-user">
+                    <span>{{ nome }}</span>
+                    {% if session.get('tipo') == 'administrador' %}
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
+                    {% else %}
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
+                    {% endif %}
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+                </div>
+            </nav>
+        </header>
+
+        <main class="dashboard-content container">
+            <div class="section-header">
+                <h2 class="page-title">Agendamento - Entrega de Documentos</h2>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% for edital in editais %}
+            <div class="edital-card">
+                <div class="edital-header" onclick="toggleContent('body-edital-{{ edital[0] }}', this)">
+                    <div class="edital-info">
+                        <strong>{{ edital[1] }}</strong> </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="event.stopPropagation(); openAgendamentoModal({{ edital[0] }});">
+                            <i></i> Novo Agendamento
+                        </button>
+                    </div>
+                </div>
+                <div class="edital-body" id="body-edital-{{ edital[0] }}">
+                    {% set lista_agendamentos = agendamentos_por_edital.get(edital[0]) %}
+                    {% if lista_agendamentos %}
+                        <table class="edital-table agendamentos-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%;">Data</th>
+                                    <th style="width: 10%;">Hora</th>
+                                    <th>Candidato</th>
+                                    <th style="width: 10%;">Agendado por</th>
+                                    <th style="width: 15%;">Status</th>
+                                    <th style="width: 15%;">Ações</th> </tr>
+                            </thead>
+                            <tbody>
+                                {% for agendamento in lista_agendamentos %}
+                                <tr>
+                                    <td>{{ agendamento[1]|dateformat_br }}</td>
+                                    <td>{{ agendamento[1]|timeformat }}</td>
+                                    <td>{{ agendamento[2] }}</td>
+                                    <td>{{ agendamento[6] }}</td>
+                                    <td>
+                                        {% if agendamento[5] == 'concluido' %}
+                                            <span class="badge-agendamento badge-success">Entregue</span>
+                                        {% else %}
+                                            <span class="badge-agendamento badge-warning">Agendado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="actions">
+                                        <button class="icon-button" title="Editar Agendamento"
+                                                data-agendamento='{{ agendamento|tojson }}'
+                                                onclick="openAgendamentoModal(this)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" 
+                                            method="POST" 
+                                            onsubmit="return confirm('Tem certeza que deseja remover este agendamento?');"
+                                            style="display:inline;">
+                                            <button type="submit" class="icon-button" title="Remover Agendamento">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-alt"></i>
+                            <p>Nenhum agendamento para este edital.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </main>
+    </div>
+
+    <div id="agendamentoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Novo Agendamento</h3>
+                <button class="icon-button" onclick="closeAgendamentoModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="agendamentoForm" action="{{ url_for('usuarios.criar_agendamento') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id_edital" id="id_edital_agendamento">
+                    <input type="hidden" name="id_agendamento" id="id_agendamento">
+                    <div class="form-group">
+                        <label for="nome_pessoa">Nome do Candidato/Portador</label>
+                        <input type="text" id="nome_pessoa" name="nome_pessoa" required list="lista-nomes-sugestoes">
+                        <datalist id="lista-nomes-sugestoes"></datalist>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="data_agendamento">Data</label>
+                            <input type="date" id="data_agendamento" name="data_agendamento" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="hora_agendamento">Hora</label>
+                            <input type="time" id="hora_agendamento" name="hora_agendamento" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="status_agendamento">Status</label>
+                            <select id="status_agendamento" name="status_agendamento" required>
+                                <option value="agendado">Agendado</option>
+                                <option value="concluido">Entregue (OK)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAgendamentoModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Agendamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // Função para expandir/recolher o corpo do card do edital
+    function toggleContent(elementId, headerElement) {
+        const body = document.getElementById(elementId);
+        if (body) body.classList.toggle('active');
+        if (headerElement) headerElement.classList.toggle('active');
+    }
+
+    // Funções para controlar o Modal de Agendamento
+    const agendamentoModal = document.getElementById('agendamentoModal');
+    const agendamentoForm = document.getElementById('agendamentoForm');
+
+function openAgendamentoModal(elemento) {
+    const agendamentoForm = document.getElementById('agendamentoForm');
+    agendamentoForm.reset();
+    const modalTitle = document.querySelector('#agendamentoModal .modal-header h3');
+
+    // MODO DE EDIÇÃO: Checa se o 'elemento' é um objeto (o botão) e se tem o atributo de dados.
+    if (typeof elemento === 'object' && elemento !== null && elemento.hasAttribute('data-agendamento')) {
+        modalTitle.innerText = 'Editar Agendamento';
+        const agendamento_data = JSON.parse(elemento.dataset.agendamento);
+        
+        const id_agendamento = agendamento_data[0];
+        const data_hora_str = agendamento_data[1];
+        const nome = agendamento_data[2];
+        const status = agendamento_data[5];
+
+        agendamentoForm.action = `/usuario/agendamento/editar/${id_agendamento}`;
+        
+        document.getElementById('id_agendamento').value = id_agendamento;
+        document.getElementById('nome_pessoa').value = nome;
+        document.getElementById('data_agendamento').value = data_hora_str.substring(0, 10);
+        document.getElementById('hora_agendamento').value = data_hora_str.substring(11, 16);
+        document.getElementById('status_agendamento').value = status; 
+    } 
+    // MODO DE CRIAÇÃO: Se não for um objeto, será o número (id_edital).
+    else {
+        const id_edital = elemento;
+        modalTitle.innerText = 'Novo Agendamento';
+        agendamentoForm.action = "{{ url_for('usuarios.criar_agendamento') }}";
+        document.getElementById('id_edital_agendamento').value = id_edital;
+        document.getElementById('id_agendamento').value = '';
+        document.getElementById('status_agendamento').value = 'agendado';
+    }
+
+    document.getElementById('agendamentoModal').classList.add('active');
+}
+    function closeAgendamentoModal() {
+        agendamentoModal.classList.remove('active');
+    }
+
+    // Fechar o modal se o usuário clicar fora dele
+    window.onclick = function(event) {
+        if (event.target == agendamentoModal) {
+            closeAgendamentoModal();
+        }
+    }
+
+    // LÓGICA DO AUTOCOMPLETAR DENTRO DO MODAL
+    const inputNomePessoa = document.getElementById('nome_pessoa');
+    const datalistSugestoes = document.getElementById('lista-nomes-sugestoes');
+
+    inputNomePessoa.addEventListener('input', async function() {
+        const query = this.value;
+        datalistSugestoes.innerHTML = ''; // Limpa sugestões antigas
+
+        if (query.length < 2) {
+            return; // Só busca se tiver pelo menos 2 caracteres
+        }
+
+        try {
+            // Chama a API para buscar nomes
+            const response = await fetch(`/usuario/api/candidatos/search?query=${query}`);
+            const nomes = await response.json();
+
+            // Adiciona cada nome retornado como uma <option> no datalist
+            nomes.forEach(nome => {
+                const option = document.createElement('option');
+                option.value = nome;
+                datalistSugestoes.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erro ao buscar sugestões:', error);
+        }
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+        // Define um tempo para a mensagem desaparecer (ex: 5 segundos)
+        setTimeout(function() {
+            // Adiciona uma transição suave para a opacidade
+            alert.style.transition = 'opacity 0.5s ease';
+            alert.style.opacity = '0';
+            
+            // Remove o elemento da página após a animação de fade-out
+            setTimeout(function() {
+                alert.style.display = 'none';
+            }, 500); // 0.5 segundos, igual à duração da transição
+        }, 2000); // 5000 milissegundos = 5 segundos
+    });
+});
+</script>
+</body>
+</html>

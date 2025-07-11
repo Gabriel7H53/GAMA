@@ -1,8 +1,9 @@
 # gama/routes/edital_routes.py
-from flask import Blueprint, render_template, session, redirect, url_for, request, flash
-from gama.models.edital import Edital, Cargo, Candidato
+from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
+from gama.models.edital import Edital, Cargo
+from gama.models.candidato import Candidato
 from datetime import datetime, timedelta, date
-from collections import defaultdict # <- Importe esta linha
+from collections import defaultdict
 import csv
 import io
 
@@ -314,3 +315,13 @@ def nomear_lote(id_edital):
         flash(f'{nomeados_com_sucesso} candidato(s) nomeado(s) com sucesso para a data de {data_posse}!', 'success')
 
     return redirect(url_for('edital.painel'))
+
+@edital_bp.route('/api/candidatos/search')
+def search_candidatos():
+    # Pega o texto digitado que veio como parâmetro na URL (ex: /api/candidatos/search?query=Joao)
+    query = request.args.get('query', '')
+    if len(query) < 2: # Só busca se tiver pelo menos 2 caracteres
+        return jsonify([])
+
+    nomes = Candidato.search_by_name(query)
+    return jsonify(nomes)

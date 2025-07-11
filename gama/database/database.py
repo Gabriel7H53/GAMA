@@ -64,6 +64,17 @@ def criar_tabelas():
         FOREIGN KEY (id_cargo) REFERENCES Cargo(id_cargo),
         FOREIGN KEY (id_edital) REFERENCES Edital(id_edital)
     );
+                         
+    CREATE TABLE IF NOT EXISTS Agendamento (
+        id_agendamento INTEGER PRIMARY KEY AUTOINCREMENT,
+        data_hora_agendamento DATETIME NOT NULL,
+        nome_pessoa_entrega TEXT NOT NULL,
+        id_edital INTEGER NOT NULL,
+        id_usuario TEXT NOT NULL,
+        status_agendamento TEXT NOT NULL DEFAULT 'agendado' CHECK(status_agendamento IN ('agendado', 'concluido')),
+        FOREIGN KEY (id_edital) REFERENCES Edital(id_edital),
+        FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+    );
     
     CREATE TABLE IF NOT EXISTS Usuario (
         id_usuario TEXT PRIMARY KEY,

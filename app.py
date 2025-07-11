@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from gama.database.database import verificar_login
 from werkzeug.security import generate_password_hash
-from datetime import timedelta
+from datetime import timedelta 
+from datetime import datetime as dt_parser
 
 # Importando os Blueprints
 from gama.routes.auth_routes import auth_bp
@@ -12,6 +13,26 @@ from gama.routes.edital_routes import edital_bp
 app = Flask(__name__, static_folder='gama/static', template_folder='gama/templates')
 app.secret_key = 'chave_secreta_super_segura'
 
+def format_date_br(value):
+    if isinstance(value, str):
+        try:
+            date_obj = dt_parser.strptime(value.split('.')[0], '%Y-%m-%d %H:%M:%S')
+            return date_obj.strftime('%d/%m/%Y')
+        except ValueError:
+            return value.split(' ')[0] # Em caso de erro, mostra a data original
+    return value
+
+def format_time(value):
+    if isinstance(value, str):
+        try:
+            date_obj = dt_parser.strptime(value.split('.')[0], '%Y-%m-%d %H:%M:%S')
+            return date_obj.strftime('%H:%M')
+        except ValueError:
+            return value.split(' ')[1] # Em caso de erro, mostra a hora original
+    return value
+
+app.jinja_env.filters['dateformat_br'] = format_date_br
+app.jinja_env.filters['timeformat'] = format_time
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.jinja_env.auto_reload = True
