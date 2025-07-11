@@ -62,6 +62,13 @@ body {
   margin-bottom: 2rem;
 }
 
+.login-logo {
+  display: block;
+  max-width: 200px;
+  height: auto;
+  margin: 0 auto 2rem auto;
+}
+
 .form-group {
   margin-bottom: 1.5rem;
 }

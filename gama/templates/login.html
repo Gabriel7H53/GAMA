@@ -12,7 +12,7 @@
 <body class="login-body"> <div class="login-container">
         <div class="login-card">
             <h1 class="login-title">GAMA</h1>
-            
+            <!-- <img src="{{ url_for('static', filename='progesp-logo.png') }}" alt="Logo da empresa" class="login-logo" /> -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
