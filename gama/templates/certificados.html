@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emissão de Certificados - GAMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="dashboard-header">
+            <nav class="dashboard-nav container">
+                <h1 class="dashboard-title">GAMA</h1>
+                <div class="dashboard-user">
+                    <span>{{ nome }}</span>
+                    {% if session.get('tipo') == 'administrador' %}
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
+                    {% else %}
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
+                    {% endif %}
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+                </div>
+            </nav>
+        </header>
+
+        <main class="dashboard-content container">
+            <div class="section-header">
+                <h2 class="page-title">Emissão de Certificados - EDITAL</h2>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}{% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}{% endif %}
+            {% endwith %}
+
+            {% for edital in editais %}
+            <div class="edital-card">
+                <div class="edital-header" onclick="toggleContent('body-cert-edital-{{ edital[0] }}', this)">
+                    <div class="edital-info">
+                        <strong>{{ edital[1] }}</strong>
+                    </div>
+                    <div class="actions">
+                        <button class="icon-button" title="Emitir Certificados em Lote" 
+                                onclick="event.stopPropagation(); openEmissaoLoteModal({{ edital[0] }});">
+                            <i class="fas fa-layer-group"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="edital-body" id="body-cert-edital-{{ edital[0] }}">
+                    {% set cargos_do_edital = candidatos_por_edital_agrupado.get(edital[0], {}) %}
+                    {% if cargos_do_edital %}
+                        {% for cargo_nome, lista_de_candidatos in cargos_do_edital.items() %}
+                        <div class="cargo-group">
+                            <div class="cargo-header" onclick="event.stopPropagation(); toggleContent('body-cert-cargo-{{ edital[0] }}-{{ loop.index }}', this)">
+                                <h4 class="cargo-title">{{ cargo_nome }}</h4>
+                            </div>
+                            <div class="cargo-body" id="body-cert-cargo-{{ edital[0] }}-{{ loop.index }}">
+                                <table class="edital-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Candidato</th>
+                                            <th>Inscrição</th>
+                                            <th style="width: 15%;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for candidato in lista_de_candidatos %}
+                                        <tr>
+                                            <td>{{ candidato.nome }}</td>
+                                            <td>{{ candidato.numero_inscricao }}</td>
+                                            <td class="actions">
+                                                <button class="btn btn-primary" style="padding: 0.5rem 1rem;" 
+                                                        data-candidato='{{ candidato|tojson }}'
+                                                        onclick="openCertificadoModal(this)">
+                                                    Emitir
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum candidato encontrado para este edital.</p></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </main>
+    </div>
+    <div id="certificadoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="certificadoModalTitle">Emitir Documento</h3>
+                <button class="icon-button" onclick="closeCertificadoModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="certificadoForm" action="{{ url_for('certificado.gerar_certificado') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id_candidato" id="id_candidato_cert">
+                    
+                    <div class="form-group">
+                        <label>Candidato</label>
+                        <p id="nome_candidato_cert" style="font-weight: bold; font-size: 1.1rem;"></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="template_selecionado">Selecione o Modelo de Documento</label>
+                        <select id="template_selecionado" name="template_selecionado" required>
+                            <option value="" disabled selected>-- Escolha um modelo --</option>
+                            <option value="modeloposse.docx">Termo de Posse</option>
+                            <option value="declaracao_exercicio.docx">Declaração de Exercício</option>
+                        </select>
+                    </div>
+
+                    <div id="campos_termo_de_posse" style="display: none;">
+                        <hr style="margin: 1.5rem 0;">
+                        <p style="font-weight: 500; margin-bottom: 1rem;">Preencha os dados para o Termo de Posse:</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="portaria">Nº da Portaria</label>
+                                <input type="text" id="portaria" name="portaria">
+                            </div>
+                            <div class="form-group">
+                                <label for="dou">Nº do DOU</label>
+                                <input type="text" id="dou" name="dou">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="carga_horaria">Carga Horária</label>
+                                <input type="text" id="carga_horaria" name="carga_horaria" value="40 horas semanais">
+                            </div>
+                            <div class="form-group">
+                                <label for="lotacao">Lotação</label>
+                                <input type="text" id="lotacao" name="lotacao">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="origem">Origem da Vaga</label>
+                                <input type="text" id="origem" name="origem">
+                            </div>
+                            <div class="form-group">
+                                <label for="codigo_vaga">Código da Vaga (SIAPE)</label>
+                                <input type="text" id="codigo_vaga" name="codigo_vгаa">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="data">Data de Nomeação</label>
+                                <input type="date" id="data" name="data">
+                            </div>
+                            <div class="form-group">
+                                <label for="data_1">Data de Emissão</label>
+                                <input type="date" id="data_1" name="data_1">
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCertificadoModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Gerar Certificado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="emissaoLoteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Emitir Documentos em Lote</h3>
+                <button class="icon-button" onclick="closeEmissaoLoteModal()"><i class="fas fa-times"></i></button>
+            </div>
+
+            <form action="{{ url_for('certificado.gerar_lote') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <p>Envie uma planilha <strong>.xlsx</strong> com os dados para a emissão. A planilha deve conter as seguintes colunas, **exatamente nesta ordem e com estes nomes na primeira linha (cabeçalho)**:</p>
+                    <br>
+                    <p><code>nome, cargo, data, portaria, dou, carga_horaria, lotacao, origem, codigo_vaga, data_1</code></p>
+                    <br>
+                    
+                    <div class="form-group">
+                        <label for="planilha">Arquivo da Planilha (.xlsx):</label>
+                        <input type="file" id="planilha" name="planilha" accept=".xlsx" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEmissaoLoteModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Gerar Documentos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // Função para expandir/recolher os cards
+    function toggleContent(elementId, headerElement) {
+        const body = document.getElementById(elementId);
+        if (body) body.classList.toggle('active');
+        if (headerElement) headerElement.classList.toggle('active');
+    }
+
+    // Funções para controlar o Modal de Certificado Individual
+    const certificadoModal = document.getElementById('certificadoModal');
+    function openCertificadoModal(button) {
+        const candidato = JSON.parse(button.dataset.candidato);
+        document.getElementById('id_candidato_cert').value = candidato.id_candidato;
+        document.getElementById('nome_candidato_cert').innerText = candidato.nome;
+        document.getElementById('template_selecionado').selectedIndex = 0;
+        certificadoModal.classList.add('active');
+    }
+    function closeCertificadoModal() {
+        certificadoModal.classList.remove('active');
+    }
+
+    // Funções (vazias por enquanto) para o Modal de Emissão em Lote
+    const emissaoLoteModal = document.getElementById('emissaoLoteModal');
+    function openEmissaoLoteModal(id_edital) {
+        // No futuro, aqui você poderá passar o id_edital para carregar os candidatos
+        console.log("Abrindo modal de emissão em lote para o edital ID:", id_edital);
+        emissaoLoteModal.classList.add('active');
+    }
+    function closeEmissaoLoteModal() {
+        emissaoLoteModal.classList.remove('active');
+    }
+
+    // Fechar os modais se o usuário clicar fora deles
+    window.onclick = function(event) {
+        if (event.target == certificadoModal) {
+            closeCertificadoModal();
+        }
+        if (event.target == emissaoLoteModal) {
+            closeEmissaoLoteModal();
+        }
+    }
+
+    const templateSelect = document.getElementById('template_selecionado');
+    const camposTermoPosse = document.getElementById('campos_termo_de_posse');
+    const camposObrigatorios = camposTermoPosse.querySelectorAll('input');
+
+    // Adiciona um "ouvinte" que dispara toda vez que o usuário muda a seleção
+    templateSelect.addEventListener('change', function() {
+        // Verifica se a opção selecionada é a do "Termo de Posse"
+        if (this.value === 'modeloposse.docx') {
+            // Se for, mostra o bloco de campos
+            camposTermoPosse.style.display = 'block';
+            // E torna os campos dentro dele obrigatórios
+            camposObrigatorios.forEach(input => input.required = true);
+        } else {
+            // Se for qualquer outra opção, esconde o bloco
+            camposTermoPosse.style.display = 'none';
+            // E remove a obrigatoriedade dos campos
+            camposObrigatorios.forEach(input => input.required = false);
+        }
+    });
+
+    // Garante que ao abrir o modal, os campos estejam escondidos se não for a opção padrão
+    function openCertificadoModal(button) {
+        const candidato = JSON.parse(button.dataset.candidato);
+        
+        document.getElementById('id_candidato_cert').value = candidato.id_candidato;
+        document.getElementById('nome_candidato_cert').innerText = candidato.nome;
+        
+        // Reseta o select e esconde os campos condicionais
+        const templateSelect = document.getElementById('template_selecionado');
+        templateSelect.selectedIndex = 0;
+        document.getElementById('campos_termo_de_posse').style.display = 'none';
+        
+        certificadoModal.classList.add('active');
+    }
+</script>
+
+</body>
+</html>

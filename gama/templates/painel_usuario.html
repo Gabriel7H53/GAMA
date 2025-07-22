@@ -28,14 +28,20 @@
             <div class="uniform-card">
                 <div class="card-icon">📋</div>
                 <h3>Editais</h3>
-                <p>Configurações relacionadas ao painel de homologação de editais e gerenciamento de candidatos.</p>
+                <p>Configurações relacionadas ao painel de homologação de editais.</p>
                 <a href="{{ url_for('edital.painel') }}" class="btn btn-primary">Acessar</a>
             </div>
             <div class="uniform-card">
                 <div class="card-icon">🗓️</div>
                 <h3>Agendamentos</h3>
-                <p>Agendar e consultar horários para entrega de documentos dos editais.</p>
+                <p>Agendar e consultar horários para entrega de documentos.</p>
                 <a href="{{ url_for('usuarios.agendamentos') }}" class="btn btn-primary">Acessar</a>
+            </div>
+            <div class="uniform-card">
+                <div class="card-icon">📜</div>
+                <h3>Certificados</h3>
+                <p>Emissão de certificados relacionados aos editais.</p>
+                <a href="{{ url_for('certificado.painel_certificados') }}" class="btn btn-primary">Acessar</a>
             </div>
         </div>
         

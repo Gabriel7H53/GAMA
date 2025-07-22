@@ -143,3 +143,46 @@ class Candidato:
             return []
         finally:
             conn.close()
+
+    @staticmethod
+    def get_all_with_details():
+        """Busca TODOS os candidatos com detalhes do edital e cargo."""
+        conn = conectar()
+        conn.row_factory = sqlite3.Row # Para facilitar o uso no template
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT
+                    c.id_candidato, c.nome, c.numero_inscricao,
+                    e.id_edital, e.numero_edital,
+                    cr.nome_cargo
+                FROM Candidato c
+                JOIN Edital e ON c.id_edital = e.id_edital
+                JOIN Cargo cr ON c.id_cargo = cr.id_cargo
+                ORDER BY e.numero_edital, c.nome
+            """)
+            return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Erro ao buscar todos os candidatos: {e}")
+            return []
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_by_id(id_candidato):
+        """Busca um único candidato com detalhes do cargo pelo seu ID."""
+        conn = conectar()
+        conn.row_factory = sqlite3.Row # Para retornar um dicionário
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT c.nome, cr.nome_cargo 
+                FROM Candidato c
+                JOIN Cargo cr ON c.id_cargo = cr.id_cargo
+                WHERE c.id_candidato = ?
+            """, (id_candidato,))
+            
+            result = cursor.fetchone()
+            return dict(result) if result else None
+        finally:
+            conn.close()

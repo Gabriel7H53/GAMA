@@ -1,4 +1,6 @@
 flask
 reportlab
 openpyxl
+docxtpl
+pandas
 gunicorn

@@ -9,6 +9,7 @@ from gama.routes.auth_routes import auth_bp
 from gama.routes.admin_routes import admin_bp
 from gama.routes.usuario_routes import usuario_bp
 from gama.routes.edital_routes import edital_bp
+from gama.routes.certificado_routes import certificado_bp
 
 app = Flask(__name__, static_folder='gama/static', template_folder='gama/templates')
 app.secret_key = 'chave_secreta_super_segura'
@@ -51,6 +52,7 @@ app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(usuario_bp, url_prefix='/usuario')
 app.register_blueprint(edital_bp, url_prefix='/edital')
+app.register_blueprint(certificado_bp, url_prefix='/certificados')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

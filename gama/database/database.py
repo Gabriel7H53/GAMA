@@ -75,6 +75,17 @@ def criar_tabelas():
         FOREIGN KEY (id_edital) REFERENCES Edital(id_edital),
         FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
     );
+                         
+    CREATE TABLE IF NOT EXISTS Certificado (
+        id_certificado INTEGER PRIMARY KEY AUTOINCREMENT,
+        codigo_validacao TEXT NOT NULL UNIQUE,
+        data_emissao DATETIME NOT NULL,
+        nome_template TEXT NOT NULL,
+        id_candidato INTEGER NOT NULL,
+        id_usuario_emissor TEXT NOT NULL,
+        FOREIGN KEY (id_candidato) REFERENCES Candidato(id_candidato),
+        FOREIGN KEY (id_usuario_emissor) REFERENCES Usuario(id_usuario)
+    );
     
     CREATE TABLE IF NOT EXISTS Usuario (
         id_usuario TEXT PRIMARY KEY,
