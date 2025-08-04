@@ -91,7 +91,6 @@ def editar_usuario():
 
 @usuario_bp.route('/agendamentos')
 def agendamentos():
-    # Proteção: Garante que o usuário esteja logado
     if 'usuario_id' not in session:
         return redirect(url_for('auth.login'))
 
@@ -100,7 +99,23 @@ def agendamentos():
 
     for edital in todos_editais:
         id_edital = edital[0]
-        agendamentos_por_edital[id_edital] = Agendamento.get_by_edital(id_edital)
+        # Estrutura para guardar os dois tipos de agendamento
+        agendamentos_por_edital[id_edital] = {
+            'documentos': [],
+            'pericias': []
+        }
+        
+        # Busca todos os agendamentos do edital
+        lista_completa_agendamentos = Agendamento.get_by_edital(id_edital)
+
+        # Separa a lista por tipo
+        for agendamento in lista_completa_agendamentos:
+            # O tipo_agendamento é a 7ª coluna (índice 6)
+            tipo = agendamento[6] 
+            if tipo == 'pericia':
+                agendamentos_por_edital[id_edital]['pericias'].append(agendamento)
+            else: # 'documento' é o padrão
+                agendamentos_por_edital[id_edital]['documentos'].append(agendamento)
 
     return render_template(
         'agendamentos.html', 

@@ -1,5 +1,3 @@
-# Em gama/routes/certificado_routes.py (NOVO ARQUIVO)
-
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash
 from gama.models.edital import Edital
 from gama.models.candidato import Candidato
@@ -42,6 +40,10 @@ def painel_certificados():
         candidatos_por_edital_agrupado=candidatos_agrupados,
         certificados_emitidos=certificados_emitidos
     )
+
+@certificado_bp.route('/painel_declaracoes')
+def painel_declaracoes():
+    return render_template('painel_declaracoes.html', nome=session.get('nome'))
 
 # A rota para gerar o DOCX virá aqui no futuro
 @certificado_bp.route('/gerar', methods=['POST'])

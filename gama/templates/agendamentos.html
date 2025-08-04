@@ -9,7 +9,77 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
-</head>
+
+    <style>
+        .agendamentos-table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .agendamentos-table th,
+        .agendamentos-table td {
+            padding: 12px 10px;      
+            text-align: left;
+            vertical-align: middle;  
+            word-wrap: break-word;     
+            border-bottom: 1px solid #e5e7eb; 
+        }
+        
+        .agendamentos-table tr:last-child td {
+             border-bottom: none;
+        }
+
+
+        .agendamentos-table th:nth-child(1), .agendamentos-table td:nth-child(1) { width: 12%; } /* Data */
+        .agendamentos-table th:nth-child(2), .agendamentos-table td:nth-child(2) { width: 7%; }  /* Hora */
+        .agendamentos-table th:nth-child(3), .agendamentos-table td:nth-child(3) { width: 28%; } /* Candidato */
+        .agendamentos-table th:nth-child(4), .agendamentos-table td:nth-child(4) { width: 15%; } /* Agendado por */
+        .agendamentos-table th:nth-child(5), .agendamentos-table td:nth-child(5) { width: 12%; } /* Status */
+        .agendamentos-table th:nth-child(6), .agendamentos-table td:nth-child(6) { width: 26%; } /* Ações */
+
+        .agendamentos-table .actions {
+            white-space: nowrap;
+        }
+
+        .sub-section-title {
+            margin-top: 1.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem;
+            border-bottom: 1px solid #ddd; font-size: 1.1rem; color: #333;
+        }
+
+        .actions .btn-sm.btn-success {
+            display: inline-flex;    
+            align-items: center;       
+            background-color: #2563EB; 
+            color: white;
+            border: none;
+            border-radius: 6px;         
+            padding: 6px 12px;        
+            font-size: 0.8rem;
+            font-weight: 500;     
+            cursor: pointer;
+            transition: all 0.2s ease; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+
+
+        .actions .btn-sm.btn-success:hover {
+            background-color: #4338CA; 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .actions .btn-sm.btn-success:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .fa-user-md {
+            margin-right: 6px;
+        }
+
+    </style>
+    </head>
 <body>
     <div class="dashboard">
         <header class="dashboard-header">
@@ -29,7 +99,7 @@
 
         <main class="dashboard-content container">
             <div class="section-header">
-                <h2 class="page-title">Agendamento - Entrega de Documentos</h2>
+                <h2 class="page-title">Agendamentos</h2>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -44,36 +114,40 @@
             <div class="edital-card">
                 <div class="edital-header" onclick="toggleContent('body-edital-{{ edital[0] }}', this)">
                     <div class="edital-info">
-                        <strong>{{ edital[1] }}</strong> </div>
+                        <strong>{{ edital[1] }}</strong>
+                    </div>
                     <div class="actions">
                         <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="event.stopPropagation(); openAgendamentoModal({{ edital[0] }});">
-                            <i></i> Novo Agendamento
+                             Novo Ag. Documentos
                         </button>
                     </div>
                 </div>
                 <div class="edital-body" id="body-edital-{{ edital[0] }}">
-                    {% set lista_agendamentos = agendamentos_por_edital.get(edital[0]) %}
-                    {% if lista_agendamentos %}
+
+                    <h4 class="sub-section-title">Entrega de Documentos</h4>
+                    {% set lista_documentos = agendamentos_por_edital.get(edital[0], {}).get('documentos', []) %}
+                    {% if lista_documentos %}
                         <table class="edital-table agendamentos-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 15%;">Data</th>
-                                    <th style="width: 10%;">Hora</th>
+                                    <th>Data</th>
+                                    <th>Hora</th>
                                     <th>Candidato</th>
-                                    <th style="width: 10%;">Agendado por</th>
-                                    <th style="width: 15%;">Status</th>
-                                    <th style="width: 15%;">Ações</th> </tr>
+                                    <th>Agendado por</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
                             </thead>
                             <tbody>
-                                {% for agendamento in lista_agendamentos %}
+                                {% for agendamento in lista_documentos %}
                                 <tr>
                                     <td>{{ agendamento[1]|dateformat_br }}</td>
                                     <td>{{ agendamento[1]|timeformat }}</td>
                                     <td>{{ agendamento[2] }}</td>
-                                    <td>{{ agendamento[6] }}</td>
+                                    <td>{{ agendamento[7] }}</td>
                                     <td>
                                         {% if agendamento[5] == 'concluido' %}
-                                            <span class="badge-agendamento badge-success">Entregue</span>
+                                            <span class="badge-agendamento badge-success">Entregue (OK)</span>
                                         {% else %}
                                             <span class="badge-agendamento badge-warning">Agendado</span>
                                         {% endif %}
@@ -84,13 +158,60 @@
                                                 onclick="openAgendamentoModal(this)">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" 
-                                            method="POST" 
-                                            onsubmit="return confirm('Tem certeza que deseja remover este agendamento?');"
-                                            style="display:inline;">
+                                        <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja remover este agendamento?');" style="display:inline;">
                                             <button type="submit" class="icon-button" title="Remover Agendamento">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
+                                        </form>
+                                        {% if agendamento[5] != 'confirmado' %}
+                                            <button class="btn-sm btn-success" title="Agendar Perícia Médica para este candidato"
+                                                    onclick="openPericiaModal({{ edital[0] }}, '{{ agendamento[2] }}')">
+                                                <i class="fas fa-user-md"></i> Agendar Perícia
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state"><p>Nenhum agendamento de documentos para este edital.</p></div>
+                    {% endif %}
+
+                    <h4 class="sub-section-title">Perícia Médica</h4>
+                    {% set lista_pericias = agendamentos_por_edital.get(edital[0], {}).get('pericias', []) %}
+                    {% if lista_pericias %}
+                        <table class="edital-table agendamentos-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Hora</th>
+                                    <th>Candidato</th>
+                                    <th>Agendado por</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for agendamento in lista_pericias %}
+                                <tr>
+                                    <td>{{ agendamento[1]|dateformat_br }}</td>
+                                    <td>{{ agendamento[1]|timeformat }}</td>
+                                    <td>{{ agendamento[2] }}</td>
+                                    <td>{{ agendamento[7] }}</td>
+                                    <td>
+                                        {% if agendamento[5] == 'concluido' %}
+                                            <span class="badge-agendamento badge-success">Realizada</span>
+                                        {% else %}
+                                            <span class="badge-agendamento badge-warning">Agendada</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="actions">
+                                        <button class="icon-button" title="Editar Perícia" data-agendamento='{{ agendamento|tojson }}' onclick="openAgendamentoModal(this, 'pericia')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja remover esta perícia?');" style="display:inline;">
+                                            <button type="submit" class="icon-button" title="Remover Perícia"><i class="fas fa-trash-alt"></i></button>
                                         </form>
                                     </td>
                                 </tr>
@@ -98,10 +219,7 @@
                             </tbody>
                         </table>
                     {% else %}
-                        <div class="empty-state">
-                            <i class="fas fa-calendar-alt"></i>
-                            <p>Nenhum agendamento para este edital.</p>
-                        </div>
+                        <div class="empty-state"><p>Nenhum agendamento de perícia para este edital.</p></div>
                     {% endif %}
                 </div>
             </div>
@@ -112,13 +230,14 @@
     <div id="agendamentoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Novo Agendamento</h3>
+                <h3 id="modalTitle">Novo Agendamento</h3>
                 <button class="icon-button" onclick="closeAgendamentoModal()"><i class="fas fa-times"></i></button>
             </div>
             <form id="agendamentoForm" action="{{ url_for('usuarios.criar_agendamento') }}" method="POST">
                 <div class="modal-body">
                     <input type="hidden" name="id_edital" id="id_edital_agendamento">
                     <input type="hidden" name="id_agendamento" id="id_agendamento">
+                    <input type="hidden" name="tipo_agendamento" id="tipo_agendamento" value="documento">
                     <div class="form-group">
                         <label for="nome_pessoa">Nome do Candidato</label>
                         <input type="text" id="nome_pessoa" name="nome_pessoa" required list="lista-nomes-sugestoes">
@@ -151,81 +270,94 @@
     </div>
 
 <script>
-    // Função para expandir/recolher o corpo do card do edital
     function toggleContent(elementId, headerElement) {
         const body = document.getElementById(elementId);
         if (body) body.classList.toggle('active');
         if (headerElement) headerElement.classList.toggle('active');
     }
 
-    // Funções para controlar o Modal de Agendamento
     const agendamentoModal = document.getElementById('agendamentoModal');
     const agendamentoForm = document.getElementById('agendamentoForm');
+    const modalTitle = document.getElementById('modalTitle');
 
-function openAgendamentoModal(elemento) {
-    const agendamentoForm = document.getElementById('agendamentoForm');
-    agendamentoForm.reset();
-    const modalTitle = document.querySelector('#agendamentoModal .modal-header h3');
+    function openAgendamentoModal(elemento, tipo = 'documento') {
+        agendamentoForm.reset();
+        document.getElementById('nome_pessoa').readOnly = false;
+        document.getElementById('status_agendamento').style.display = 'block';
+        document.querySelector('label[for="status_agendamento"]').style.display = 'block';
 
-    // MODO DE EDIÇÃO: Checa se o 'elemento' é um objeto (o botão) e se tem o atributo de dados.
-    if (typeof elemento === 'object' && elemento !== null && elemento.hasAttribute('data-agendamento')) {
-        modalTitle.innerText = 'Editar Agendamento';
-        const agendamento_data = JSON.parse(elemento.dataset.agendamento);
-        
-        const id_agendamento = agendamento_data[0];
-        const data_hora_str = agendamento_data[1];
-        const nome = agendamento_data[2];
-        const status = agendamento_data[5];
+        if (typeof elemento === 'object' && elemento.hasAttribute('data-agendamento')) {
+            const agendamento_data = JSON.parse(elemento.dataset.agendamento);
+            modalTitle.innerText = tipo === 'pericia' ? 'Editar Perícia Médica' : 'Editar Agendamento de Documentos';
+            
+            const id_agendamento = agendamento_data[0];
+            const data_hora_str = agendamento_data[1];
+            const nome = agendamento_data[2];
+            const status = agendamento_data[5];
 
-        agendamentoForm.action = `/usuario/agendamento/editar/${id_agendamento}`;
-        
-        document.getElementById('id_agendamento').value = id_agendamento;
-        document.getElementById('nome_pessoa').value = nome;
-        document.getElementById('data_agendamento').value = data_hora_str.substring(0, 10);
-        document.getElementById('hora_agendamento').value = data_hora_str.substring(11, 16);
-        document.getElementById('status_agendamento').value = status; 
-    } 
-    // MODO DE CRIAÇÃO: Se não for um objeto, será o número (id_edital).
-    else {
-        const id_edital = elemento;
-        modalTitle.innerText = 'Novo Agendamento';
-        agendamentoForm.action = "{{ url_for('usuarios.criar_agendamento') }}";
-        document.getElementById('id_edital_agendamento').value = id_edital;
-        document.getElementById('id_agendamento').value = '';
-        document.getElementById('status_agendamento').value = 'agendado';
+            agendamentoForm.action = `/usuario/agendamento/editar/${id_agendamento}`;
+            
+            document.getElementById('id_agendamento').value = id_agendamento;
+            document.getElementById('nome_pessoa').value = nome;
+            document.getElementById('data_agendamento').value = data_hora_str.substring(0, 10);
+            document.getElementById('hora_agendamento').value = data_hora_str.substring(11, 16);
+            document.getElementById('status_agendamento').value = status;
+        } 
+        else {
+            const id_edital = elemento;
+            modalTitle.innerText = 'Novo Ag. de Documentos';
+            agendamentoForm.action = "{{ url_for('usuarios.criar_agendamento') }}";
+            document.getElementById('id_edital_agendamento').value = id_edital;
+            document.getElementById('id_agendamento').value = '';
+            document.getElementById('tipo_agendamento').value = 'documento';
+            document.getElementById('status_agendamento').value = 'agendado';
+        }
+
+        agendamentoModal.classList.add('active');
     }
 
-    document.getElementById('agendamentoModal').classList.add('active');
-}
+    function openPericiaModal(id_edital, nome_candidato) {
+        agendamentoForm.reset();
+        
+        modalTitle.innerText = 'Agendar Perícia Médica';
+        agendamentoForm.action = "{{ url_for('usuarios.criar_agendamento') }}";
+        
+        document.getElementById('id_edital_agendamento').value = id_edital;
+        document.getElementById('id_agendamento').value = '';
+        document.getElementById('tipo_agendamento').value = 'pericia';
+        document.getElementById('nome_pessoa').value = nome_candidato;
+        document.getElementById('nome_pessoa').readOnly = true;
+        
+        document.getElementById('status_agendamento').value = 'agendado';
+        document.getElementById('status_agendamento').style.display = 'none';
+        document.querySelector('label[for="status_agendamento"]').style.display = 'none';
+
+        agendamentoModal.classList.add('active');
+    }
+
     function closeAgendamentoModal() {
         agendamentoModal.classList.remove('active');
     }
 
-    // Fechar o modal se o usuário clicar fora dele
     window.onclick = function(event) {
         if (event.target == agendamentoModal) {
             closeAgendamentoModal();
         }
     }
 
-    // LÓGICA DO AUTOCOMPLETAR DENTRO DO MODAL
     const inputNomePessoa = document.getElementById('nome_pessoa');
     const datalistSugestoes = document.getElementById('lista-nomes-sugestoes');
 
     inputNomePessoa.addEventListener('input', async function() {
+        if (this.readOnly) return;
         const query = this.value;
-        datalistSugestoes.innerHTML = ''; // Limpa sugestões antigas
+        datalistSugestoes.innerHTML = ''; 
 
-        if (query.length < 2) {
-            return; // Só busca se tiver pelo menos 2 caracteres
-        }
+        if (query.length < 2) return;
 
         try {
-            // Chama a API para buscar nomes
             const response = await fetch(`/usuario/api/candidatos/search?query=${query}`);
             const nomes = await response.json();
-
-            // Adiciona cada nome retornado como uma <option> no datalist
             nomes.forEach(nome => {
                 const option = document.createElement('option');
                 option.value = nome;
@@ -235,22 +367,19 @@ function openAgendamentoModal(elemento) {
             console.error('Erro ao buscar sugestões:', error);
         }
     });
+
     document.addEventListener('DOMContentLoaded', () => {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(function(alert) {
-        // Define um tempo para a mensagem desaparecer (ex: 5 segundos)
-        setTimeout(function() {
-            // Adiciona uma transição suave para a opacidade
-            alert.style.transition = 'opacity 0.5s ease';
-            alert.style.opacity = '0';
-            
-            // Remove o elemento da página após a animação de fade-out
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
             setTimeout(function() {
-                alert.style.display = 'none';
-            }, 500); // 0.5 segundos, igual à duração da transição
-        }, 2000); // 5000 milissegundos = 5 segundos
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.style.display = 'none';
+                }, 500);
+            }, 5000);
+        });
     });
-});
 </script>
 </body>
 </html>

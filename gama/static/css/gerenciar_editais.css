@@ -109,7 +109,9 @@
     table-layout: fixed; 
 }
 
-.edital-table th, .edital-table td {
+/* CORREÇÃO APLICADA AQUI */
+.edital-table:not(.agendamentos-table) th, 
+.edital-table:not(.agendamentos-table) td {
     padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid #e5e7eb;

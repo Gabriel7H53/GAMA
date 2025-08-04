@@ -5,20 +5,43 @@ from datetime import datetime
 class Agendamento:
 
     @staticmethod
-    def create(id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega):
+    # MODIFICADO: Adicionado 'tipo_agendamento'
+    def create(id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega, tipo_agendamento='documento'):
         """Cria um novo agendamento no banco de dados."""
         conn = conectar()
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                INSERT INTO Agendamento (id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega)
-                VALUES (?, ?, ?, ?)
-            """, (id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega))
+                INSERT INTO Agendamento (id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega, tipo_agendamento)
+                VALUES (?, ?, ?, ?, ?)
+            """, (id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega, tipo_agendamento))
             conn.commit()
             return True, "Agendamento criado com sucesso."
         except sqlite3.Error as e:
             conn.rollback()
             return False, f"Erro ao criar agendamento: {e}"
+        finally:
+            conn.close()
+
+
+    @staticmethod
+    def get_agendamento_documento_concluido(id_edital, nome_candidato):
+        """Verifica se existe um agendamento de documento 'concluido' para um candidato específico no edital."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT 1 
+                FROM Agendamento
+                WHERE id_edital = ? 
+                  AND nome_pessoa_entrega = ? 
+                  AND tipo_agendamento = 'documento' 
+                  AND status_agendamento = 'concluido'
+            """, (id_edital, nome_candidato))
+            return cursor.fetchone() is not None
+        except sqlite3.Error as e:
+            print(f"Erro ao verificar agendamento concluído: {e}")
+            return False
         finally:
             conn.close()
 
@@ -36,7 +59,8 @@ class Agendamento:
                 WHERE a.id_edital = ? 
                 ORDER BY a.data_hora_agendamento ASC
             """, (id_edital,))
-            return cursor.fetchall()
+            # Retorna uma lista de tuplas. A coluna tipo_agendamento será o índice 6.
+            return cursor.fetchall() 
         except sqlite3.Error as e:
             print(f"Erro ao buscar agendamentos: {e}")
             return []

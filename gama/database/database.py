@@ -71,7 +71,8 @@ def criar_tabelas():
         nome_pessoa_entrega TEXT NOT NULL,
         id_edital INTEGER NOT NULL,
         id_usuario TEXT NOT NULL,
-        status_agendamento TEXT NOT NULL DEFAULT 'agendado' CHECK(status_agendamento IN ('agendado', 'concluido')),
+        status_agendamento TEXT NOT NULL DEFAULT 'agendado' CHECK(status_agendamento IN ('agendado', 'concluido', 'confirmado')),
+        tipo_agendamento TEXT NOT NULL DEFAULT 'documento' CHECK(tipo_agendamento IN ('documento', 'pericia')), 
         FOREIGN KEY (id_edital) REFERENCES Edital(id_edital),
         FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
     );

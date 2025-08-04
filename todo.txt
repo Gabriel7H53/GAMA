@@ -1,0 +1,16 @@
+Adicionar Padrão de Vencimento D,E como atributo no CARGO (prioridade)
+Mudar Visual / Nome Certificado (OK)
+Agendamento Perícia (OK)
+
+Adicinar Pro-Reitor/Reitora (Campo)
+Singular No Documento (O Reitor, A Reitora)
+Data (Modificar para numeral)
+
+Data De Nomeação -> Data de Posse
+
+Adicionar Situação - Final de Fila/Empossado (Complexo)
+
+Entrada em Exercicio (Depois de corrigir o documento de posse)
+
+Adicionar tipo do Edital - Técnico/Docente (String)
+Termo Posse Professor

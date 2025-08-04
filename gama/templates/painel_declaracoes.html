@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Declarações - GAMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
+</head>
+<body>
+<div class="dashboard">
+    <header class="dashboard-header">
+        <nav class="dashboard-nav container">
+            <h1 class="dashboard-title">GAMA</h1>
+            <div class="dashboard-user">
+                <span>{{ nome }}</span>
+                {% if session.get('tipo') == 'administrador' %}
+                    <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
+                {% else %}
+                    <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="dashboard-main container">
+        <div class="dashboard-intro">
+            <h2 style="font-size: 2rem;">Módulo de Declarações</h2>
+            <p class="config-subtitle">Selecione o tipo de documento que deseja emitir</p>
+        </div>
+
+        <div class="cards-container">
+
+            <div class="uniform-card">
+                <div class="card-icon">✒️</div>
+                <h3>Termo de Posse</h3>
+                <p>Gerar o Termo de Posse para um novo servidor com base em dados de uma planilha.</p>
+                <a href="{{ url_for('certificado.painel_certificados') }}" class="btn btn-primary">Acessar</a>
+            </div>
+
+            <div class="uniform-card">
+                <div class="card-icon">📄</div>
+                <h3>Declaração de Exercício</h3>
+                <p>Emitir uma declaração que comprova o exercício das atividades de um servidor.</p>
+                <a href="#" class="btn btn-primary" style="background-color: var(--secondary);">Em Breve</a>
+            </div>
+
+            <div class="uniform-card">
+                <div class="card-icon">⏱️</div>
+                <h3>Atestado de Frequência</h3>
+                <p>Gerar atestados de frequência para servidores em um determinado período.</p>
+                 <a href="#" class="btn btn-primary" style="background-color: var(--secondary);">Em Breve</a>
+            </div>
+
+            <div class="uniform-card">
+                <div class="card-icon">⏱️</div>
+                <h3>Atestado de Frequência</h3>
+                <p>Gerar atestados de frequência para servidores em um determinado período.</p>
+                 <a href="#" class="btn btn-primary" style="background-color: var(--secondary);">Em Breve</a>
+            </div>
+            
+        </div>
+        
+    </main>
+</div>
+</body>
+</html>
