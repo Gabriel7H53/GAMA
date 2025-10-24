@@ -136,18 +136,56 @@ def criar_agendamento():
         nome_pessoa = request.form['nome_pessoa']
         data = request.form['data_agendamento']
         hora = request.form['hora_agendamento']
+        tipo_agendamento = request.form.get('tipo_agendamento', 'documento')
         
-        # Combina data e hora em um único objeto datetime
-        data_hora_agendamento = datetime.strptime(f"{data} {hora}", '%Y-%m-%d %H:%M')
+        # ID do agendamento de documento que será concluído (se houver)
+        id_documento_a_concluir = request.form.get('id_documento_a_concluir')
 
+        data_hora_agendamento = datetime.strptime(f"{data} {hora}", '%Y-%m-%d %H:%M')
         id_usuario_logado = session['usuario_id']
 
-        success, message = Agendamento.create(id_edital, id_usuario_logado, data_hora_agendamento, nome_pessoa)
-        flash(message, 'success' if success else 'error')
+        # NOVA LÓGICA: Se estamos criando uma perícia E recebemos um ID de documento...
+        if tipo_agendamento == 'pericia' and id_documento_a_concluir:
+            # 1. Marque o agendamento de documento original como 'concluido'
+            Agendamento.update_status(id_documento_a_concluir, 'concluido')
+
+        # 2. Crie o novo agendamento (seja documento ou perícia)
+        success, message = Agendamento.create(
+            id_edital, id_usuario_logado, data_hora_agendamento, nome_pessoa, tipo_agendamento
+        )
+        
+        if tipo_agendamento == 'pericia' and success:
+             flash("Perícia agendada e entrega de documento concluída com sucesso.", 'success')
+        else:
+            flash(message, 'success' if success else 'error')
 
     except Exception as e:
         flash(f"Ocorreu um erro ao processar sua solicitação: {e}", "error")
 
+    return redirect(url_for('usuarios.agendamentos'))
+
+@usuario_bp.route('/agendamento/concluir_pericia/<int:id_agendamento>', methods=['POST'])
+def concluir_pericia(id_agendamento):
+    """
+    Rota para marcar uma perícia específica como 'concluida' (Realizada)
+    com um único clique.
+    """
+    if 'usuario_id' not in session:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('auth.login'))
+
+    try:
+        # Reutilizamos o método que criamos anteriormente
+        success, message = Agendamento.update_status(id_agendamento, 'concluido')
+        
+        if success:
+            flash("Perícia marcada como realizada com sucesso.", 'success')
+        else:
+            flash(message, 'error')
+            
+    except Exception as e:
+        flash(f"Ocorreu um erro ao atualizar o status: {e}", "error")
+    
     return redirect(url_for('usuarios.agendamentos'))
 
 @usuario_bp.route('/api/candidatos/search')

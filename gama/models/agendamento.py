@@ -5,7 +5,7 @@ from datetime import datetime
 class Agendamento:
 
     @staticmethod
-    # MODIFICADO: Adicionado 'tipo_agendamento'
+    # MODIFICADO: Adicionado 'tipo_agendamento' no final
     def create(id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega, tipo_agendamento='documento'):
         """Cria um novo agendamento no banco de dados."""
         conn = conectar()
@@ -20,6 +20,27 @@ class Agendamento:
         except sqlite3.Error as e:
             conn.rollback()
             return False, f"Erro ao criar agendamento: {e}"
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_agendamento_documento_concluido(id_edital, nome_candidato):
+        """Verifica se existe um agendamento de documento 'concluido' para um candidato específico no edital."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT 1 
+                FROM Agendamento
+                WHERE id_edital = ? 
+                  AND nome_pessoa_entrega = ? 
+                  AND tipo_agendamento = 'documento' 
+                  AND status_agendamento = 'concluido'
+            """, (id_edital, nome_candidato))
+            return cursor.fetchone() is not None
+        except sqlite3.Error as e:
+            print(f"Erro ao verificar agendamento concluído: {e}")
+            return False
         finally:
             conn.close()
 
@@ -95,6 +116,25 @@ class Agendamento:
         except sqlite3.Error as e:
             conn.rollback()
             return False, f"Erro ao atualizar agendamento: {e}"
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_status(id_agendamento, status):
+        """Atualiza apenas o status de um agendamento."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE Agendamento
+                SET status_agendamento = ?
+                WHERE id_agendamento = ?
+            """, (status, id_agendamento))
+            conn.commit()
+            return True, "Status atualizado com sucesso."
+        except sqlite3.Error as e:
+            conn.rollback()
+            return False, f"Erro ao atualizar status: {e}"
         finally:
             conn.close()
 
