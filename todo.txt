@@ -1,10 +1,11 @@
-Adicionar Padrão de Vencimento D,E como atributo no CARGO (prioridade)
+Adicionar Padrão de Vencimento D,E como atributo no CARGO (prioridade) (OK)
 Mudar Visual / Nome Certificado (OK)
 Agendamento Perícia (OK)
 
-Adicinar Pro-Reitor/Reitora (Campo)
-Singular No Documento (O Reitor, A Reitora)
-Data (Modificar para numeral)
+
+Adicionar Carga Horária / Lotação / Portaria (OK)
+Adicinar Pro-Reitor(a) (Campo) (OK)
+Data (Modificar para numeral) (OK)
 
 Data De Nomeação -> Data de Posse
 

@@ -75,16 +75,22 @@ class Edital:
 class Cargo:
     # ... O código da classe Cargo permanece o mesmo ...
     @staticmethod
-    def get_or_create(id_edital, nome_cargo):
+    def get_or_create(id_edital, nome_cargo, padrao_vencimento):
         conn = conectar()
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT id_cargo FROM Cargo WHERE nome_cargo = ? AND id_edital = ?", (nome_cargo, id_edital))
             cargo = cursor.fetchone()
             if cargo:
+                # Optional: Check if the existing cargo has the correct pattern?
+                # Or update it? For now, we just return the existing ID.
                 return cargo[0]
-            
-            cursor.execute("INSERT INTO Cargo (nome_cargo, id_edital) VALUES (?, ?)", (nome_cargo, id_edital))
+
+            # Add padrao_vencimento to the INSERT statement
+            cursor.execute(
+                "INSERT INTO Cargo (nome_cargo, id_edital, padrao_vencimento) VALUES (?, ?, ?)",
+                (nome_cargo, id_edital, padrao_vencimento) # Pass the new value
+            )
             conn.commit()
             return cursor.lastrowid
         finally:
@@ -92,6 +98,7 @@ class Cargo:
 
     @staticmethod
     def get_by_edital(id_edital):
+        # This method likely doesn't need changes as SELECT * will include the new column
         conn = conectar()
         cursor = conn.cursor()
         try:

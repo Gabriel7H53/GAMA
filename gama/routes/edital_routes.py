@@ -146,7 +146,10 @@ def adicionar_candidato(id_edital):
         return redirect(url_for('auth.login'))
 
     nome_cargo = request.form['nome_cargo'].strip()
-    id_cargo = Cargo.get_or_create(id_edital, nome_cargo)
+    padrao_vencimento = request.form['padrao_vencimento'] # <-- GET the new field from form
+    # Pass it to get_or_create
+    id_cargo = Cargo.get_or_create(id_edital, nome_cargo, padrao_vencimento)
+    # ... (rest of the function remains the same) ...
     nome = request.form['nome']
     inscricao = request.form['numero_inscricao']
     nota = request.form['nota']
@@ -155,7 +158,7 @@ def adicionar_candidato(id_edital):
     cotista = 'cotista' in request.form
     situacao = request.form['situacao']
     data_posse = request.form.get('data_posse')
-    success, message = Candidato.create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse)
+    success, message = Candidato.create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse) #
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
@@ -165,11 +168,13 @@ def adicionar_candidato(id_edital):
 def editar_candidato(id_candidato):
     if not check_admin():
         return redirect(url_for('auth.login'))
-    
+
     id_edital = request.form['id_edital']
     nome_cargo = request.form['nome_cargo'].strip()
-    id_cargo = Cargo.get_or_create(id_edital, nome_cargo)
-    
+    padrao_vencimento = request.form['padrao_vencimento'] # <-- GET the new field from form
+    # Pass it to get_or_create
+    id_cargo = Cargo.get_or_create(id_edital, nome_cargo, padrao_vencimento)
+    # ... (rest of the function remains the same) ...
     nome = request.form['nome']
     inscricao = request.form['numero_inscricao']
     nota = request.form['nota']
@@ -177,9 +182,9 @@ def editar_candidato(id_candidato):
     pcd = 'pcd' in request.form
     cotista = 'cotista' in request.form
     situacao = request.form['situacao']
-    data_posse = request.form.get('data_posse')
+    data_posse = request.form.get('data_posse') #
 
-    success, message = Candidato.update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse)
+    success, message = Candidato.update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse) #
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 
@@ -221,44 +226,55 @@ def adicionar_lote(id_edital):
         candidatos_lidos = []
         erros_leitura = []
 
-        # Etapa 1: Ler e validar todas as linhas do arquivo primeiro
         for i, linha in enumerate(reader):
-            if len(linha) < 4:
-                erros_leitura.append(f"Linha {i+2}: formato inválido (esperadas 4 colunas).")
+            # Expect 5 columns now
+            if len(linha) < 5: # <-- UPDATED Check
+                erros_leitura.append(f"Linha {i+2}: formato inválido (esperadas 5 colunas).") # <-- UPDATED Message
                 continue
-            
-            nome, inscricao, nota_str, nome_cargo = linha
+
+            # Unpack 5 values
+            nome, inscricao, nota_str, nome_cargo, padrao_vencimento = linha # <-- UPDATED Unpacking
+            padrao_vencimento = padrao_vencimento.strip().upper() # Ensure it's uppercase D or E
+
+            # Validate padrao_vencimento
+            if padrao_vencimento not in ('D', 'E'):
+                erros_leitura.append(f"Linha {i+2}: Padrão de Vencimento '{padrao_vencimento}' inválido (deve ser 'D' ou 'E').")
+                continue
+
             try:
                 nota = float(nota_str.replace(',', '.'))
                 candidatos_lidos.append({
                     'nome': nome.strip(),
                     'inscricao': inscricao.strip(),
                     'nota': nota,
-                    'nome_cargo': nome_cargo.strip()
+                    'nome_cargo': nome_cargo.strip(),
+                    'padrao_vencimento': padrao_vencimento # <-- STORE the value
                 })
             except ValueError:
-                erros_leitura.append(f"Linha {i+2}: a nota '{nota_str}' não é um número válido.")
+                erros_leitura.append(f"Linha {i+2}: a nota '{nota_str}' não é um número válido.") #
 
         if erros_leitura:
-            flash('Erros encontrados no arquivo: ' + " | ".join(erros_leitura), 'error')
+            flash('Erros encontrados no arquivo: ' + " | ".join(erros_leitura), 'error') #
             return redirect(url_for('edital.painel'))
 
-        # Etapa 2: Agrupar os candidatos lidos por cargo
+        # Grouping remains the same
         candidatos_por_cargo = defaultdict(list)
         for candidato in candidatos_lidos:
-            candidatos_por_cargo[candidato['nome_cargo']].append(candidato)
-        
-        # Etapa 3: Inserir os candidatos no banco, cargo por cargo
+            candidatos_por_cargo[candidato['nome_cargo']].append(candidato) #
+
         candidatos_adicionados = 0
         erros_insercao = []
 
         for nome_cargo, lista_candidatos in candidatos_por_cargo.items():
             try:
-                # Para cada novo cargo, busca a última classificação existente no banco
-                id_cargo = Cargo.get_or_create(id_edital, nome_cargo)
-                ultima_classificacao = Candidato.get_max_classificacao(id_edital, id_cargo) # Supondo que a função foi adaptada
-                
-                # Inicia a contagem a partir do último classificado + 1
+                # Assume the first candidate in the list for this cargo has the correct pattern
+                # (Alternatively, you could add logic to ensure all candidates for the same cargo
+                # in the CSV have the same pattern, or handle conflicts)
+                padrao_vencimento_cargo = lista_candidatos[0]['padrao_vencimento']
+
+                # Pass the pattern when getting/creating the cargo ID
+                id_cargo = Cargo.get_or_create(id_edital, nome_cargo, padrao_vencimento_cargo)
+                ultima_classificacao = Candidato.get_max_classificacao(id_edital, id_cargo) #
                 classificacao_counter = ultima_classificacao + 1
 
                 for candidato in lista_candidatos:
@@ -270,7 +286,7 @@ def adicionar_lote(id_edital):
                         nota=candidato['nota'],
                         classificacao=classificacao_counter,
                         pcd=False, cotista=False, situacao='homologado', data_posse=None
-                    )
+                    ) #
                     candidatos_adicionados += 1
                     classificacao_counter += 1
             

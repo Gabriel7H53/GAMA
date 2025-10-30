@@ -45,6 +45,7 @@ def criar_tabelas():
         id_cargo INTEGER PRIMARY KEY AUTOINCREMENT,
         nome_cargo TEXT NOT NULL,
         id_edital INTEGER NOT NULL,
+        padrao_vencimento TEXT NOT NULL CHECK (padrao_vencimento IN ('D', 'E')),
         FOREIGN KEY (id_edital) REFERENCES Edital(id_edital),
         UNIQUE (nome_cargo, id_edital)
     );
@@ -98,9 +99,16 @@ def criar_tabelas():
         data_ingresso DATETIME NOT NULL,
         data_saida DATETIME
     );
+
+    -- NOVA TABELA PARA OPÇÕES DINÂMICAS --
+    CREATE TABLE IF NOT EXISTS Opcao (
+        id_opcao INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo_opcao TEXT NOT NULL, -- Ex: 'reitor', 'local'
+        valor_opcao TEXT NOT NULL UNIQUE -- Ex: 'Marcelo Matias de Almeida'
+    );
     """)
     
-    # Verifica se o usuário master já existe pelo id_usuario
+    # Verifica se o usuário master já existe
     cursor.execute("SELECT * FROM Usuario WHERE id_usuario = ?", ('master_001',))
     if not cursor.fetchone():
         hashed_password = generate_password_hash('admin123')
@@ -117,6 +125,20 @@ def criar_tabelas():
             datetime.datetime.now()
         ))
     
+    # Adiciona as opções padrão (se não existirem)
+    opcoes_padrao = [
+        ('reitor', 'Marcelo Matias de Almeida'),
+        ('reitor', 'Zuleika Guimarães'),
+        ('local', 'no Anfiteatro da Universidade Federal da Grande Dourados, Unidade 1'),
+        ('local', 'Gabinete da Reitoria, Unidade II'),
+        ('local', 'Anfiteatro da Unidade II UFGD')
+    ]
+
+    for tipo, valor in opcoes_padrao:
+        cursor.execute("SELECT * FROM Opcao WHERE valor_opcao = ?", (valor,))
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO Opcao (tipo_opcao, valor_opcao) VALUES (?, ?)", (tipo, valor))
+
     conexao.commit()
     conexao.close()
 
