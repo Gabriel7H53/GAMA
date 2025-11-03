@@ -38,6 +38,10 @@ def numero_por_extenso(n):
 # --- FIM DA FUNÇÃO AUXILIAR ---
 
 
+# ===============================================
+# ROTAS DO TERMO DE POSSE
+# ===============================================
+
 @certificado_bp.route('/painel')
 def painel_certificados():
     if 'usuario_id' not in session:
@@ -55,10 +59,8 @@ def painel_certificados():
 
     certificados_emitidos = Certificado.get_all()
     
-    # --- BUSCAR OPÇÕES DINÂMICAS ---
     opcoes_reitor = Opcao.get_por_tipo('reitor')
     opcoes_local = Opcao.get_por_tipo('local')
-    # --- FIM DA BUSCA ---
 
     return render_template(
         'certificados.html',
@@ -66,8 +68,8 @@ def painel_certificados():
         editais=editais,
         candidatos_por_edital_agrupado=candidatos_agrupados,
         certificados_emitidos=certificados_emitidos,
-        opcoes_reitor=opcoes_reitor, # Passa para o template
-        opcoes_local=opcoes_local   # Passa para o template
+        opcoes_reitor=opcoes_reitor,
+        opcoes_local=opcoes_local
     )
 
 @certificado_bp.route('/painel_declaracoes')
@@ -80,15 +82,13 @@ def gerar_certificado():
         return redirect(url_for('auth.login'))
 
     try:
-        # 1. Obter dados do formulário
         id_candidato = request.form.get('id_candidato')
-        template_selecionado = request.form.get('template_selecionado')
+        template_selecionado = request.form.get('template_selecionado') # 'modeloposse.docx'
         data_nomeacao_str = request.form.get('data') 
         data_emissao_str = request.form.get('data_1')
         local = request.form.get('local')
         reitor = request.form.get('reitor')
 
-        # --- BLOCO DE VALIDAÇÃO ---
         campos_obrigatorios = {
             'Candidato': id_candidato,
             'Template': template_selecionado,
@@ -103,15 +103,12 @@ def gerar_certificado():
             if not valor:
                 flash(f'O campo "{nome_campo}" é obrigatório e não foi preenchido.', 'error')
                 return redirect(url_for('certificado.painel_certificados'))
-        # --- FIM DO BLOCO DE VALIDAÇÃO ---
 
-        # 2. Obter dados do banco
         candidato = Candidato.get_by_id(id_candidato)
         if not candidato:
             flash('Candidato não encontrado.', 'error')
             return redirect(url_for('certificado.painel_certificados'))
 
-        # 3. Formatar as datas
         locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
         
         data_nomeacao_obj = datetime.strptime(data_nomeacao_str, '%Y-%m-%d')
@@ -122,44 +119,36 @@ def gerar_certificado():
         data_emissao_obj = datetime.strptime(data_emissao_str, '%Y-%m-%d')
         data_emissao_extenso = data_emissao_obj.strftime('%d de %B de %Y')
 
-        # 4. Criar o dicionário de contexto (ATUALIZADO)
         context = {
             'nome': candidato['nome'],
             'cargo': candidato['nome_cargo'],
             'nivel': candidato['padrao_vencimento'],
-            
             'dia': dia_extenso,
             'mês': mes_extenso,
             'ano': ano_extenso,
-            
             'local': local,
             'reitor': reitor,
             'portaria': request.form.get('portaria'),
-            'dou': '', # Removido
+            'dou': '',
             'carga_horaria': request.form.get('carga_horaria'),
             'lotacao': request.form.get('lotacao'),
-            # 'origem': request.form.get('origem'), # <-- REMOVIDO
             'codigo_vaga': request.form.get('codigo_vaga'),
             'data_1': data_emissao_extenso,
         }
 
-        # 5. Processar o template .docx
         doc = DocxTemplate(f'gama/docx_templates/{template_selecionado}')
         doc.render(context)
 
-        # 6. Salvar o documento em memória
         file_stream = io.BytesIO()
         doc.save(file_stream)
         file_stream.seek(0)
 
-        # 7. Registrar a emissão no banco
         Certificado.create(
             nome_template=template_selecionado,
             id_candidato=id_candidato,
             id_usuario_emissor=session['usuario_id']
         )
 
-        # 8. Enviar o arquivo para download
         return send_file(
             file_stream,
             as_attachment=True,
@@ -189,26 +178,18 @@ def gerar_lote():
     try:
         df = pd.read_excel(planilha)
         
-        # --- VALIDAÇÃO DE COLUNAS ATUALIZADA ---
-        # Removido 'origem' da lista de colunas necessárias
         required_cols = ['nivel', 'local', 'reitor', 'data', 'data_1', 'nome', 'cargo', 'portaria']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             flash(f"Erro na planilha: Coluna(s) não encontrada(s): {', '.join(missing_cols)}.", 'error')
             return redirect(url_for('certificado.painel_certificados'))
         
-        if 'dou' in df.columns:
-            flash("Aviso: A coluna 'dou' na planilha foi ignorada.", 'info')
-        if 'origem' in df.columns:
-            flash("Aviso: A coluna 'origem' na planilha foi ignorada.", 'info')
-
         locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
         zip_buffer = io.BytesIO()
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for index, row in df.iterrows():
                 
-                # --- LÓGICA DE DATA ---
                 data_nomeacao_obj = row['data']
                 dia_extenso = numero_por_extenso(data_nomeacao_obj.day)
                 mes_extenso = data_nomeacao_obj.strftime('%B')
@@ -217,23 +198,19 @@ def gerar_lote():
                 data_emissao_obj = row['data_1']
                 data_emissao_extenso = data_emissao_obj.strftime('%d de %B de %Y')
 
-                # Dicionário de contexto (ATUALIZADO)
                 context = {
                     'nome': row['nome'],
                     'cargo': row['cargo'],
                     'nivel': row['nivel'],
-                    
                     'dia': dia_extenso,
                     'mês': mes_extenso,
                     'ano': ano_extenso,
-
                     'local': row['local'],
                     'reitor': row['reitor'],
                     'portaria': row['portaria'],
-                    'dou': '', # Removido
+                    'dou': '', 
                     'carga_horaria': row['carga_horaria'],
                     'lotacao': row['lotacao'],
-                    # 'origem': row.get('origem', ''), # <-- REMOVIDO
                     'codigo_vaga': row['codigo_vaga'],
                     'data_1': data_emissao_extenso,
                 }
@@ -262,3 +239,173 @@ def gerar_lote():
         flash(f'Ocorreu um erro ao processar a planilha: {e}', 'error')
         print(f"ERRO NO LOTE: {e}")
         return redirect(url_for('certificado.painel_certificados'))
+
+# ===============================================
+# NOVAS ROTAS P/ TERMO DE APRESENTAÇÃO
+# ===============================================
+
+@certificado_bp.route('/painel_apresentacao')
+def painel_apresentacao():
+    """Exibe a página de geração de Termos de Apresentação."""
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    editais = Edital.get_all()
+    
+    # Busca candidatos (que agora tem 'data_posse' e 'padrao_vencimento')
+    candidatos_agrupados = defaultdict(lambda: defaultdict(list))
+    todos_candidatos = Candidato.get_all_with_details() 
+
+    for candidato in todos_candidatos:
+        # Filtra apenas candidatos que já tomaram posse (têm data_posse)
+        if candidato['data_posse']:
+            id_edital = candidato['id_edital']
+            nome_cargo = candidato['nome_cargo']
+            candidatos_agrupados[id_edital][nome_cargo].append(candidato)
+
+    # Busca as opções dinâmicas necessárias
+    opcoes_reitor = Opcao.get_por_tipo('reitor')
+    opcoes_unidade = Opcao.get_por_tipo('unidade')
+
+    return render_template(
+        'termo_apresentacao.html', # Novo template
+        nome=session.get('nome'),
+        editais=editais,
+        candidatos_por_edital_agrupado=candidatos_agrupados,
+        opcoes_reitor=opcoes_reitor,
+        opcoes_unidade=opcoes_unidade
+    )
+
+@certificado_bp.route('/gerar_apresentacao', methods=['POST'])
+def gerar_apresentacao():
+    """Gera um Termo de Apresentação individual."""
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    try:
+        id_candidato = request.form.get('id_candidato')
+        reitor = request.form.get('reitor')
+        unidade = request.form.get('unidade')
+        template_selecionado = 'modeloapresentacao.docx' # Template fixo
+
+        # Validação
+        if not id_candidato or not reitor or not unidade:
+            flash('Todos os campos são obrigatórios.', 'error')
+            return redirect(url_for('certificado.painel_apresentacao'))
+
+        # Busca dados do candidato (incluindo data_posse, cargo, nivel)
+        candidato = Candidato.get_by_id(id_candidato)
+        if not candidato or not candidato['data_posse']:
+            flash('Candidato não encontrado ou sem data de posse.', 'error')
+            return redirect(url_for('certificado.painel_apresentacao'))
+
+        # Formata a data de posse
+        locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+        data_posse_obj = datetime.strptime(candidato['data_posse'], '%Y-%m-%d')
+        data_formatada = data_posse_obj.strftime('%d/%m/%Y')
+
+        context = {
+            'data': data_formatada,
+            'unidade': unidade,
+            'nome': candidato['nome'],
+            'cargo': candidato['nome_cargo'],
+            'nivel': candidato['padrao_vencimento'],
+            'reitor': reitor
+        }
+
+        doc = DocxTemplate(f'gama/docx_templates/{template_selecionado}')
+        doc.render(context)
+
+        file_stream = io.BytesIO()
+        doc.save(file_stream)
+        file_stream.seek(0)
+
+        # (Opcional) Você pode querer registrar este documento na tabela Certificado também
+        # Certificado.create(
+        #     nome_template=template_selecionado,
+        #     id_candidato=id_candidato,
+        #     id_usuario_emissor=session['usuario_id']
+        # )
+
+        return send_file(
+            file_stream,
+            as_attachment=True,
+            download_name=f'Termo de Apresentação - {candidato["nome"]}.docx',
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+
+    except Exception as e:
+        flash(f'Ocorreu um erro ao gerar o documento: {e}', 'error')
+        print(f"ERRO: {e}")
+        return redirect(url_for('certificado.painel_apresentacao'))
+
+@certificado_bp.route('/gerar_apresentacao_lote', methods=['POST'])
+def gerar_apresentacao_lote():
+    """Gera Termos de Apresentação em lote a partir de um XLSX."""
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    if 'planilha' not in request.files or request.files['planilha'].filename == '':
+        flash('Nenhum arquivo de planilha enviado.', 'error')
+        return redirect(url_for('certificado.painel_apresentacao'))
+
+    planilha = request.files['planilha']
+    if not planilha.filename.endswith('.xlsx'):
+        flash('Formato de arquivo inválido. Por favor, envie um arquivo .xlsx', 'error')
+        return redirect(url_for('certificado.painel_apresentacao'))
+
+    try:
+        df = pd.read_excel(planilha, dtype=str) # Lê tudo como string para evitar problemas
+        
+        required_cols = ['nome', 'cargo', 'nivel', 'data_posse', 'unidade', 'reitor']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            flash(f"Erro na planilha: Coluna(s) não encontrada(s): {', '.join(missing_cols)}.", 'error')
+            return redirect(url_for('certificado.painel_apresentacao'))
+
+        locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+        zip_buffer = io.BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for index, row in df.iterrows():
+                
+                # Formata a data de posse
+                try:
+                    data_posse_obj = pd.to_datetime(row['data_posse'])
+                    data_formatada = data_posse_obj.strftime('%d/%m/%Y')
+                except Exception:
+                    data_formatada = row['data_posse'] # Usa o texto original se falhar
+
+                context = {
+                    'data': data_formatada,
+                    'unidade': row['unidade'],
+                    'nome': row['nome'],
+                    'cargo': row['cargo'],
+                    'nivel': row['nivel'],
+                    'reitor': row['reitor']
+                }
+
+                doc = DocxTemplate('gama/docx_templates/modeloapresentacao.docx')
+                doc.render(context)
+                
+                nome_arquivo_saida = f"Termo de Apresentação - {row['nome']}.docx"
+
+                docx_buffer = io.BytesIO()
+                doc.save(docx_buffer)
+                docx_buffer.seek(0)
+                
+                zip_file.writestr(nome_arquivo_saida, docx_buffer.read())
+        
+        zip_buffer.seek(0)
+        
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name='Termos_de_Apresentacao_Lote.zip',
+            mimetype='application/zip'
+        )
+
+    except Exception as e:
+        flash(f'Ocorreu um erro ao processar a planilha: {e}', 'error')
+        print(f"ERRO NO LOTE: {e}")
+        return redirect(url_for('certificado.painel_apresentacao'))

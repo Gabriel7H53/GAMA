@@ -27,16 +27,19 @@ def gerenciar_opcoes():
     try:
         opcoes_reitor = Opcao.get_por_tipo('reitor')
         opcoes_local = Opcao.get_por_tipo('local')
+        opcoes_unidade = Opcao.get_por_tipo('unidade') # <-- ADICIONADO
     except Exception as e:
         flash(f'Erro ao carregar opções: {e}', 'error')
         opcoes_reitor = []
         opcoes_local = []
+        opcoes_unidade = [] # <-- ADICIONADO
 
     return render_template(
         'config_opcoes.html', 
         nome=session.get('nome'),
         opcoes_reitor=opcoes_reitor,
-        opcoes_local=opcoes_local
+        opcoes_local=opcoes_local,
+        opcoes_unidade=opcoes_unidade # <-- ADICIONADO
     )
 
 @config_bp.route('/remover_opcao/<int:id_opcao>', methods=['POST'])

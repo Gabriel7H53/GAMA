@@ -103,7 +103,7 @@ def criar_tabelas():
     -- NOVA TABELA PARA OPÇÕES DINÂMICAS --
     CREATE TABLE IF NOT EXISTS Opcao (
         id_opcao INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo_opcao TEXT NOT NULL, -- Ex: 'reitor', 'local'
+        tipo_opcao TEXT NOT NULL, -- Ex: 'reitor', 'local', 'unidade'
         valor_opcao TEXT NOT NULL UNIQUE -- Ex: 'Marcelo Matias de Almeida'
     );
     """)
@@ -131,7 +131,9 @@ def criar_tabelas():
         ('reitor', 'Zuleika Guimarães'),
         ('local', 'no Anfiteatro da Universidade Federal da Grande Dourados, Unidade 1'),
         ('local', 'Gabinete da Reitoria, Unidade II'),
-        ('local', 'Anfiteatro da Unidade II UFGD')
+        ('local', 'Anfiteatro da Unidade II UFGD'),
+        ('unidade', 'Assessoria de Comunicação Social - ACS/UFGD'),
+        ('unidade', 'Pró-reitoria de Gestão de Pessoas - PROGESP/UFGD')
     ]
 
     for tipo, valor in opcoes_padrao:

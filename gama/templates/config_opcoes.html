@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Opções - GAMA</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/usuarios.css') }}"> <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/usuarios.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
 </head>
@@ -122,11 +123,53 @@
                 </div>
             </div>
 
+            <div class="form-container">
+                <h3 class="titulo">Unidades de Lotação/Apresentação</h3>
+                <form action="{{ url_for('config.gerenciar_opcoes') }}" method="POST">
+                    <input type="hidden" name="tipo_opcao" value="unidade">
+                    <div class="form-row">
+                        <div class="form-group" style="flex-grow: 3;">
+                            <label for="valor_unidade" class="form-label">Nome da Unidade</label>
+                            <input type="text" id="valor_unidade" name="valor_opcao" class="form-input" required>
+                        </div>
+                        <div class="form-group" style="flex-grow: 1; align-self: flex-end;">
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Adicionar Unidade</button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="tabela-container" style="margin-top: 1.5rem;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th style="width: 20%;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for unidade in opcoes_unidade %}
+                            <tr>
+                                <td>{{ unidade.valor_opcao }}</td>
+                                <td class="acoes">
+                                    <form action="{{ url_for('config.remover_opcao', id_opcao=unidade.id_opcao) }}" method="POST" onsubmit="return confirm('Tem certeza?');">
+                                        <button type="submit" class="btn btn-perigo">Remover</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="2">Nenhuma unidade cadastrada.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </main>
     </div>
     
     <script>
-    // Script para fazer os alertas desaparecerem
     document.addEventListener('DOMContentLoaded', () => {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
@@ -136,7 +179,7 @@
                 setTimeout(function() {
                     alert.style.display = 'none';
                 }, 500);
-            }, 5000); // 5 segundos
+            }, 5000);
         });
     });
     </script>

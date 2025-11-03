@@ -27,38 +27,21 @@ class Candidato:
             return False, f"Erro ao adicionar candidato: {e}"
         finally:
             conn.close()
-
-    # @staticmethod
-    # def get_by_edital(id_edital):
-    #     conn = conectar()
-    #     cursor = conn.cursor()
-    #     try:
-    #         query = """
-    #             SELECT cand.*, carg.nome_cargo 
-    #             FROM Candidato cand
-    #             JOIN Cargo carg ON cand.id_cargo = carg.id_cargo
-    #             WHERE cand.id_edital = ? 
-    #             ORDER BY cand.classificacao ASC
-    #         """
-    #         cursor.execute(query, (id_edital,))
-    #         return cursor.fetchall()
-    #     finally:
-    #         conn.close()
-
+            
     @staticmethod
     def get_by_edital(id_edital):
         conn = conectar()
         cursor = conn.cursor()
         try:
             query = """
-                SELECT cand.*, carg.nome_cargo, carg.padrao_vencimento -- <-- ADD carg.padrao_vencimento
+                SELECT cand.*, carg.nome_cargo, carg.padrao_vencimento
                 FROM Candidato cand
                 JOIN Cargo carg ON cand.id_cargo = carg.id_cargo
-                WHERE cand.id_edital = ?
+                WHERE cand.id_edital = ? 
                 ORDER BY cand.classificacao ASC
             """
             cursor.execute(query, (id_edital,))
-            return cursor.fetchall() # The result tuple will now have one more item
+            return cursor.fetchall()
         finally:
             conn.close()
     
@@ -163,14 +146,14 @@ class Candidato:
 
     @staticmethod
     def get_all_with_details():
-        """Busca TODOS os candidatos com detalhes do edital, cargo e padrao_vencimento."""
+        """Busca TODOS os candidatos com detalhes do edital, cargo, padrao_vencimento e data_posse."""
         conn = conectar()
-        conn.row_factory = sqlite3.Row # Para facilitar o uso no template
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
             cursor.execute("""
                 SELECT
-                    c.id_candidato, c.nome, c.numero_inscricao,
+                    c.id_candidato, c.nome, c.numero_inscricao, c.data_posse,
                     e.id_edital, e.numero_edital,
                     cr.nome_cargo, cr.padrao_vencimento 
                 FROM Candidato c
@@ -187,13 +170,13 @@ class Candidato:
 
     @staticmethod
     def get_by_id(id_candidato):
-        """Busca um único candidato com detalhes do cargo e padrao_vencimento pelo seu ID."""
+        """Busca um único candidato com detalhes do cargo, padrao_vencimento e data_posse."""
         conn = conectar()
-        conn.row_factory = sqlite3.Row # Para retornar um dicionário
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                SELECT c.nome, cr.nome_cargo, cr.padrao_vencimento
+                SELECT c.nome, c.data_posse, cr.nome_cargo, cr.padrao_vencimento
                 FROM Candidato c
                 JOIN Cargo cr ON c.id_cargo = cr.id_cargo
                 WHERE c.id_candidato = ?
