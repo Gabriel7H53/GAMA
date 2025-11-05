@@ -38,16 +38,16 @@
             {% endwith %}
 
             <div class="form-container">
-                <h3 class="titulo">Gestores (Reitores)</h3>
+                <h3 class="titulo">Reitores</h3>
                 <form action="{{ url_for('config.gerenciar_opcoes') }}" method="POST">
                     <input type="hidden" name="tipo_opcao" value="reitor">
                     <div class="form-row">
                         <div class="form-group" style="flex-grow: 3;">
-                            <label for="valor_reitor" class="form-label">Nome do Gestor</label>
+                            <label for="valor_reitor" class="form-label">Nome do Pro-Reitor</label>
                             <input type="text" id="valor_reitor" name="valor_opcao" class="form-input" required>
                         </div>
                         <div class="form-group" style="flex-grow: 1; align-self: flex-end;">
-                            <button type="submit" class="btn btn-primary" style="width: 100%;">Adicionar Gestor</button>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Adicionar Pro-Reitor(a)</button>
                         </div>
                     </div>
                 </form>
@@ -72,7 +72,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="2">Nenhum gestor cadastrado.</td>
+                                <td colspan="2">Nenhum pro-reitor cadastrado.</td>
                             </tr>
                             {% endfor %}
                         </tbody>

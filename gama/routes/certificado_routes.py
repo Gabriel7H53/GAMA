@@ -50,9 +50,13 @@ def painel_certificados():
     editais = Edital.get_all()
     
     candidatos_agrupados = defaultdict(lambda: defaultdict(list))
-    todos_candidatos = Candidato.get_all_with_details() 
+    todos_candidatos_raw = Candidato.get_all_with_details() 
 
-    for candidato in todos_candidatos:
+    # Filtra a lista para incluir APENAS candidatos com situação 'nomeado'
+    todos_candidatos_filtrados = [c for c in todos_candidatos_raw if c['situacao'] == 'nomeado']
+
+    # Agrupa os candidatos já filtrados e ordenados (pela query do SQL)
+    for candidato in todos_candidatos_filtrados:
         id_edital = candidato['id_edital']
         nome_cargo = candidato['nome_cargo']
         candidatos_agrupados[id_edital][nome_cargo].append(candidato)
@@ -93,7 +97,6 @@ def gerar_certificado():
             'Candidato': id_candidato,
             'Template': template_selecionado,
             'Data de Nomeação': data_nomeacao_str,
-            'Data de Emissão': data_emissao_str,
             'Portaria': request.form.get('portaria'),
             'Local': local,
             'Reitor': reitor
@@ -116,8 +119,7 @@ def gerar_certificado():
         mes_extenso = data_nomeacao_obj.strftime('%B')
         ano_extenso = data_nomeacao_obj.strftime('%Y')
         
-        data_emissao_obj = datetime.strptime(data_emissao_str, '%Y-%m-%d')
-        data_emissao_extenso = data_emissao_obj.strftime('%d de %B de %Y')
+        data_emissao_extenso = data_nomeacao_obj.strftime('%d de %B de %Y')
 
         context = {
             'nome': candidato['nome'],
@@ -178,7 +180,7 @@ def gerar_lote():
     try:
         df = pd.read_excel(planilha)
         
-        required_cols = ['nivel', 'local', 'reitor', 'data', 'data_1', 'nome', 'cargo', 'portaria']
+        required_cols = ['nivel', 'local', 'reitor', 'data', 'nome', 'cargo', 'portaria']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             flash(f"Erro na planilha: Coluna(s) não encontrada(s): {', '.join(missing_cols)}.", 'error')
@@ -195,8 +197,7 @@ def gerar_lote():
                 mes_extenso = data_nomeacao_obj.strftime('%B')
                 ano_extenso = data_nomeacao_obj.strftime('%Y')
                 
-                data_emissao_obj = row['data_1']
-                data_emissao_extenso = data_emissao_obj.strftime('%d de %B de %Y')
+                data_emissao_extenso = data_nomeacao_obj.strftime('%d de %B de %Y')
 
                 context = {
                     'nome': row['nome'],

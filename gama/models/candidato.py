@@ -154,12 +154,13 @@ class Candidato:
             cursor.execute("""
                 SELECT
                     c.id_candidato, c.nome, c.numero_inscricao, c.data_posse,
+                    c.situacao, c.nota,
                     e.id_edital, e.numero_edital,
                     cr.nome_cargo, cr.padrao_vencimento 
                 FROM Candidato c
                 JOIN Edital e ON c.id_edital = e.id_edital
                 JOIN Cargo cr ON c.id_cargo = cr.id_cargo
-                ORDER BY e.numero_edital, c.nome
+                ORDER BY e.numero_edital, cr.nome_cargo, c.nota DESC
             """)
             return [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error as e:

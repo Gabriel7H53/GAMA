@@ -143,9 +143,9 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="reitor">Gestor (Reitor) que assina</label>
+                        <label for="reitor">Pro-Reitor que assina</label>
                         <select id="reitor" name="reitor" required>
-                            <option value="" disabled selected>-- Selecione o gestor --</option>
+                            <option value="" disabled selected>-- Selecione o pro-reitor --</option>
                             {% for reitor in opcoes_reitor %}
                                 <option value="{{ reitor.valor_opcao }}">{{ reitor.valor_opcao }}</option>
                             {% endfor %}

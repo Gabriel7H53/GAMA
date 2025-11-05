@@ -245,8 +245,8 @@
 
                                         {% if agendamento[5] == 'agendado' %}
                                             <form action="{{ url_for('usuarios.concluir_pericia', id_agendamento=agendamento[0]) }}" method="POST" style="display:inline; margin-left: 5px;">
-                                                <button type="submit" class="btn-sm btn-concluir" title="Marcar perícia como realizada">
-                                                    <i class="fas fa-check-square"></i> Realizada
+                                                <button type="submit" class="btn-sm btn-success" title="Marcar perícia como realizada">
+                                                    <i class="fas fa-user-md"></i> Realizada
                                                 </button>
                                             </form>
                                         {% endif %}

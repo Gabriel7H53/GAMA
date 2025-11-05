@@ -1,17 +1,49 @@
 Adicionar Padrão de Vencimento D,E como atributo no CARGO (prioridade) (OK)
 Mudar Visual / Nome Certificado (OK)
 Agendamento Perícia (OK)
-
-
 Adicionar Carga Horária / Lotação / Portaria (OK)
 Adicinar Pro-Reitor(a) (Campo) (OK)
 Data (Modificar para numeral) (OK)
+Data De Nomeação -> Data de Posse (OK)
+Entrada em Exercicio(OK)
+Mudança de Gestor para Reitor (ok)
+Data de Emissão/Nomeação : 2 pra um e deixar apenas Data de Posse que deve ser cadastrado após concluir pericia (Ok)
 
-Data De Nomeação -> Data de Posse
 
-Adicionar Situação - Final de Fila/Empossado (Complexo)
+Mudança de Tela Que Fica fechando pra deixar aberta
+Lock/Cargo e Padrão de Vencimento
 
-Entrada em Exercicio (Depois de corrigir o documento de posse)
+
+
+
+
+quando finalizar a pericia quais dados podemos cadastrar? codigo de vaga? lotação? ou cadastrar lotação somente após.
+
+modulo de portaria? cadastrar portaria por edital 
+
+
+
+adicionar no editar candidado (portaria, codigo de vaga, lotação (lista),  )
+
+mudar o nomear em lote para -> empossar varias pessoas coletivamente na mesma data -> empossar em lote
+
+adicionar lógica para puxar a ultima portaria cadastrada para a proxima nomeação
+
+mudar tela de agendamento para ser uma tela de controle (contatado , final de Fila, sm interesse - tornado sem efeito)
+
+se possivel encontrar alguma maneira de avisar que o candidato esta com dados incompletos por exemplo sem lotação, portaria, codigo de vaga
+
+
+
+
+adicionar emissão coletiva de termo de posse ja emitindo o termo de apresentação ( travar se tiver algum dado faltando, e exibir oq esta faltando)
+
+
+Termo de Posse Coletivo
+
+
+
 
 Adicionar tipo do Edital - Técnico/Docente (String)
 Termo Posse Professor
+Adicionar Situação - Final de Fila/Empossado (Complexo)
