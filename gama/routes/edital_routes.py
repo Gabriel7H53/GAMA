@@ -1,6 +1,7 @@
 # gama/routes/edital_routes.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
 from gama.models.edital import Edital, Cargo
+from gama.models.configuracao import Opcao
 from gama.models.candidato import Candidato
 from datetime import datetime, timedelta, date
 from collections import defaultdict
@@ -52,12 +53,15 @@ def painel():
             candidatos_agrupados_por_cargo[nome_cargo].append(candidato)
         candidatos_agrupados[edital[0]] = dict(sorted(candidatos_agrupados_por_cargo.items()))
 
+    opcoes_unidade = Opcao.get_por_tipo('unidade')
+
     return render_template(
         'edital.html', 
         nome=session.get('nome'), 
         editais=editais_com_status_vencimento,
         candidatos_por_edital_agrupado=candidatos_agrupados,
-        candidatos_por_edital_simples=candidatos_simples
+        candidatos_por_edital_simples=candidatos_simples,
+        opcoes_unidade=opcoes_unidade
     )
 
 @edital_bp.route('/adicionar', methods=['POST'])
@@ -158,7 +162,9 @@ def adicionar_candidato(id_edital):
     cotista = 'cotista' in request.form
     situacao = request.form['situacao']
     data_posse = request.form.get('data_posse')
-    success, message = Candidato.create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse) #
+    portaria = request.form.get('portaria')
+    lotacao = request.form.get('lotacao')
+    success, message = Candidato.create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao) #
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
@@ -182,9 +188,11 @@ def editar_candidato(id_candidato):
     pcd = 'pcd' in request.form
     cotista = 'cotista' in request.form
     situacao = request.form['situacao']
-    data_posse = request.form.get('data_posse') #
+    data_posse = request.form.get('data_posse') 
+    portaria = request.form.get('portaria')
+    lotacao = request.form.get('lotacao')
 
-    success, message = Candidato.update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse) #
+    success, message = Candidato.update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao) #
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 

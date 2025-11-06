@@ -93,7 +93,7 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum candidato encontrado para este edital.</p></div>
+                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum candidato nomeado encontrado para este edital.</p></div>
                     {% endif %}
                 </div>
             </div>
@@ -128,7 +128,8 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="portaria">Nº da Portaria</label>
-                                <input type="text" id="portaria" name="portaria" required> </div>
+                                <input type="text" id="portaria" name="portaria" required> 
+                            </div>
                             <div class="form-group">
                                 <label for="local">Local</label>
                                 <select id="local" name="local" required> <option value="" disabled selected>-- Selecione o local --</option>
@@ -218,8 +219,10 @@
 
     const certificadoModal = document.getElementById('certificadoModal');
     
-    // ATUALIZADO: Lógica do Modal Individual
-function openCertificadoModal(button) {
+    // ======================================================
+    // ALTERAÇÃO AQUI: Função openCertificadoModal atualizada
+    // ======================================================
+    function openCertificadoModal(button) {
         const candidato = JSON.parse(button.dataset.candidato);
         
         // Reseta o formulário (limpa todos os campos)
@@ -237,16 +240,34 @@ function openCertificadoModal(button) {
             nivelDisplay.innerText = "Nível não cadastrado para este cargo!"; 
         }
 
+        // Preenche a Data de Posse (se houver)
         const dataPosseInput = document.getElementById('data');
-        
         if (candidato.data_posse) {
             dataPosseInput.value = candidato.data_posse;
         } else {
             dataPosseInput.value = ''; // Apenas por garantia
         }
         
+        // Preenche Portaria e Lotação (se já existirem no candidato)
+        if (candidato.portaria) {
+            document.getElementById('portaria').value = candidato.portaria;
+        }
+        if (candidato.lotacao) {
+            document.getElementById('lotacao').value = candidato.lotacao;
+        }
+
+        // ---- INÍCIO DA NOVA ALTERAÇÃO ----
+        // Preenche os campos 'reitor' e 'local' com os valores padrão
+        // passados pela rota (ou com '' se não houver padrão)
+        document.getElementById('reitor').value = "{{ default_reitor or '' }}";
+        document.getElementById('local').value = "{{ default_local or '' }}";
+        // ---- FIM DA NOVA ALTERAÇÃO ----
+        
         certificadoModal.classList.add('active');
     }
+    // ======================================================
+    // FIM DA ALTERAÇÃO
+    // ======================================================
 
     function closeCertificadoModal() {
         certificadoModal.classList.remove('active');
@@ -273,9 +294,6 @@ function openCertificadoModal(button) {
         }
     }
 
-    // LÓGICA DE CAMPOS CONDICIONAIS REMOVIDA
-    // O JavaScript não precisa mais mostrar/esconder campos ou mudar 'required'
-    // pois isso agora é feito diretamente no HTML.
 </script>
 
 </body>

@@ -6,7 +6,7 @@ from datetime import datetime
 class Candidato:
     # ... (métodos create, get_by_edital e delete permanecem os mesmos) ...
     @staticmethod
-    def create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse):
+    def create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None):
         conn = conectar()
         cursor = conn.cursor()
         try:
@@ -15,9 +15,9 @@ class Candidato:
             cotista_bool = 1 if cotista else 0
             
             cursor.execute("""
-                INSERT INTO Candidato (id_edital, id_cargo, nome, numero_inscricao, nota, classificacao, pcd, cotista, situacao, data_posse)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse))
+                INSERT INTO Candidato (id_edital, id_cargo, nome, numero_inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse, portaria, lotacao))
             conn.commit()
             return True, "Candidato adicionado com sucesso."
         except sqlite3.IntegrityError:
@@ -33,8 +33,15 @@ class Candidato:
         conn = conectar()
         cursor = conn.cursor()
         try:
+            # ATUALIZADO: Query modificada para não usar 'cand.*' e garantir a ordem das colunas.
+            # Os novos campos (portaria, lotacao) são adicionados no final.
             query = """
-                SELECT cand.*, carg.nome_cargo, carg.padrao_vencimento
+                SELECT 
+                    cand.id_candidato, cand.nome, cand.numero_inscricao, cand.nota, cand.id_cargo, 
+                    cand.classificacao, cand.pcd, cand.cotista, cand.situacao, cand.data_posse, 
+                    cand.id_edital, 
+                    carg.nome_cargo, carg.padrao_vencimento,
+                    cand.portaria, cand.lotacao
                 FROM Candidato cand
                 JOIN Cargo carg ON cand.id_cargo = carg.id_cargo
                 WHERE cand.id_edital = ? 
@@ -47,7 +54,7 @@ class Candidato:
     
     # MÉTODO ATUALIZADO
     @staticmethod
-    def update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse):
+    def update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None):
         conn = conectar()
         cursor = conn.cursor()
         try:
@@ -57,9 +64,10 @@ class Candidato:
             
             cursor.execute("""
                 UPDATE Candidato 
-                SET id_cargo = ?, nome = ?, numero_inscricao = ?, nota = ?, classificacao = ?, pcd = ?, cotista = ?, situacao = ?, data_posse = ?
+                SET id_cargo = ?, nome = ?, numero_inscricao = ?, nota = ?, classificacao = ?, pcd = ?, cotista = ?, situacao = ?, data_posse = ?,
+                    portaria = ?, lotacao = ?
                 WHERE id_candidato = ?
-            """, (id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse, id_candidato))
+            """, (id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse, portaria, lotacao, id_candidato))
             conn.commit()
             return True, "Candidato atualizado com sucesso."
         except sqlite3.Error as e:
@@ -156,7 +164,8 @@ class Candidato:
                     c.id_candidato, c.nome, c.numero_inscricao, c.data_posse,
                     c.situacao, c.nota,
                     e.id_edital, e.numero_edital,
-                    cr.nome_cargo, cr.padrao_vencimento 
+                    cr.nome_cargo, cr.padrao_vencimento,
+                    c.portaria, c.lotacao
                 FROM Candidato c
                 JOIN Edital e ON c.id_edital = e.id_edital
                 JOIN Cargo cr ON c.id_cargo = cr.id_cargo
@@ -177,7 +186,7 @@ class Candidato:
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                SELECT c.nome, c.data_posse, cr.nome_cargo, cr.padrao_vencimento
+                SELECT c.nome, c.data_posse, cr.nome_cargo, cr.padrao_vencimento, c.portaria, c.lotacao
                 FROM Candidato c
                 JOIN Cargo cr ON c.id_cargo = cr.id_cargo
                 WHERE c.id_candidato = ?

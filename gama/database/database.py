@@ -62,6 +62,8 @@ def criar_tabelas():
         situacao TEXT NOT NULL CHECK (situacao IN ('nomeado', 'homologado', 'sem_efeito')),
         data_posse DATE,
         id_edital INTEGER NOT NULL,
+        portaria TEXT,
+        lotacao TEXT,
         FOREIGN KEY (id_cargo) REFERENCES Cargo(id_cargo),
         FOREIGN KEY (id_edital) REFERENCES Edital(id_edital)
     );
@@ -104,7 +106,12 @@ def criar_tabelas():
     CREATE TABLE IF NOT EXISTS Opcao (
         id_opcao INTEGER PRIMARY KEY AUTOINCREMENT,
         tipo_opcao TEXT NOT NULL, -- Ex: 'reitor', 'local', 'unidade'
-        valor_opcao TEXT NOT NULL UNIQUE -- Ex: 'Marcelo Matias de Almeida'
+        valor_opcao TEXT NOT NULL UNIQUE, -- Ex: 'Marcelo Matias de Almeida'
+        
+        -- ======================================================
+        -- ALTERAÇÃO AQUI: Coluna 'is_default' adicionada
+        -- ======================================================
+        is_default BOOLEAN NOT NULL DEFAULT 0
     );
     """)
     
@@ -139,6 +146,7 @@ def criar_tabelas():
     for tipo, valor in opcoes_padrao:
         cursor.execute("SELECT * FROM Opcao WHERE valor_opcao = ?", (valor,))
         if not cursor.fetchone():
+            # A query INSERT não precisa mudar, pois 'is_default' tem o valor DEFAULT 0
             cursor.execute("INSERT INTO Opcao (tipo_opcao, valor_opcao) VALUES (?, ?)", (tipo, valor))
 
     conexao.commit()

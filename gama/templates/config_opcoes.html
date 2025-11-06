@@ -9,6 +9,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
+    <style>
+        /* Estilo para o badge de 'Padrão' */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 0.5rem;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+
+        .btn-action {
+            min-width: 152px; /* Define uma largura mínima igual para os botões */
+            text-align: center; /* Garante que o texto esteja centralizado */
+        }
+
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -57,16 +75,28 @@
                         <thead>
                             <tr>
                                 <th>Nome</th>
-                                <th style="width: 20%;">Ações</th>
+                                <th style="width: 30%;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for reitor in opcoes_reitor %}
                             <tr>
-                                <td>{{ reitor.valor_opcao }}</td>
+                                <td>
+                                    {{ reitor.valor_opcao }}
+                                    {% if reitor.is_default %}
+                                        <span class="badge badge-success">Padrão</span>
+                                    {% endif %}
+                                </td>
                                 <td class="acoes">
-                                    <form action="{{ url_for('config.remover_opcao', id_opcao=reitor.id_opcao) }}" method="POST" onsubmit="return confirm('Tem certeza?');">
-                                        <button type="submit" class="btn btn-perigo">Remover</button>
+                                    {% if not reitor.is_default %}
+                                        <form action="{{ url_for('config.set_default', id_opcao=reitor.id_opcao) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-secundario btn-action">
+                                                Padrão
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    <form action="{{ url_for('config.remover_opcao', id_opcao=reitor.id_opcao) }}" method="POST" onsubmit="return confirm('Tem certeza?');" style="display:inline;">
+                                        <button type="submit" class="btn btn-perigo btn-action">Remover</button>
                                     </form>
                                 </td>
                             </tr>
@@ -100,16 +130,28 @@
                         <thead>
                             <tr>
                                 <th>Descrição</th>
-                                <th style="width: 20%;">Ações</th>
+                                <th style="width: 30%;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for local in opcoes_local %}
                             <tr>
-                                <td>{{ local.valor_opcao }}</td>
+                                <td>
+                                    {{ local.valor_opcao }}
+                                    {% if local.is_default %}
+                                        <span class="badge badge-success">Padrão</span>
+                                    {% endif %}
+                                </td>
                                 <td class="acoes">
-                                    <form action="{{ url_for('config.remover_opcao', id_opcao=local.id_opcao) }}" method="POST" onsubmit="return confirm('Tem certeza?');">
-                                        <button type="submit" class="btn btn-perigo">Remover</button>
+                                    {% if not local.is_default %}
+                                        <form action="{{ url_for('config.set_default', id_opcao=local.id_opcao) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-secundario btn-action">
+                                                Padrão
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    <form action="{{ url_for('config.remover_opcao', id_opcao=local.id_opcao) }}" method="POST" onsubmit="return confirm('Tem certeza?');" style="display:inline;">
+                                        <button type="submit" class="btn btn-perigo btn-action">Remover</button>
                                     </form>
                                 </td>
                             </tr>
@@ -143,16 +185,28 @@
                         <thead>
                             <tr>
                                 <th>Nome</th>
-                                <th style="width: 20%;">Ações</th>
+                                <th style="width: 30%;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for unidade in opcoes_unidade %}
                             <tr>
-                                <td>{{ unidade.valor_opcao }}</td>
+                                <td>
+                                    {{ unidade.valor_opcao }}
+                                    {% if unidade.is_default %}
+                                        <span class="badge badge-success">Padrão</span>
+                                    {% endif %}
+                                </td>
                                 <td class="acoes">
-                                    <form action="{{ url_for('config.remover_opcao', id_opcao=unidade.id_opcao) }}" method="POST" onsubmit="return confirm('Tem certeza?');">
-                                        <button type="submit" class="btn btn-perigo">Remover</button>
+                                    {% if not unidade.is_default %}
+                                        <form action="{{ url_for('config.set_default', id_opcao=unidade.id_opcao) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-secundario btn-action">
+                                                Padrão  
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    <form action="{{ url_for('config.remover_opcao', id_opcao=unidade.id_opcao) }}" method="POST" onsubmit="return confirm('Tem certeza?');" style="display:inline;">
+                                        <button type="submit" class="btn btn-perigo btn-action">Remover</button>
                                     </form>
                                 </td>
                             </tr>
@@ -165,7 +219,6 @@
                     </table>
                 </div>
             </div>
-
         </main>
     </div>
     

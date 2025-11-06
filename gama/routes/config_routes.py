@@ -52,3 +52,15 @@ def remover_opcao(id_opcao):
     flash(message, 'success' if success else 'error')
     
     return redirect(url_for('config.gerenciar_opcoes'))
+
+@config_bp.route('/set_default/<int:id_opcao>', methods=['POST'])
+def set_default(id_opcao):
+    """Define uma opção como padrão."""
+    if 'usuario_id' not in session or session.get('tipo') != 'administrador':
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('auth.login'))
+
+    success, message = Opcao.set_default(id_opcao)
+    flash(message, 'success' if success else 'error')
+    
+    return redirect(url_for('config.gerenciar_opcoes'))

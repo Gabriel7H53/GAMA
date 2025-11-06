@@ -63,8 +63,19 @@ def painel_certificados():
 
     certificados_emitidos = Certificado.get_all()
     
+    # ======================================================
+    # ALTERAÇÃO AQUI: Buscando os valores padrão
+    # ======================================================
     opcoes_reitor = Opcao.get_por_tipo('reitor')
     opcoes_local = Opcao.get_por_tipo('local')
+
+    # Encontra o valor padrão em cada lista (ou usa None se não houver)
+    # A função next() para o primeiro item que satisfaz a condição
+    default_reitor = next((r['valor_opcao'] for r in opcoes_reitor if r['is_default']), None)
+    default_local = next((l['valor_opcao'] for l in opcoes_local if l['is_default']), None)
+    # ======================================================
+    # FIM DA ALTERAÇÃO
+    # ======================================================
 
     return render_template(
         'certificados.html',
@@ -73,7 +84,15 @@ def painel_certificados():
         candidatos_por_edital_agrupado=candidatos_agrupados,
         certificados_emitidos=certificados_emitidos,
         opcoes_reitor=opcoes_reitor,
-        opcoes_local=opcoes_local
+        opcoes_local=opcoes_local,
+        # ======================================================
+        # ALTERAÇÃO AQUI: Passando os padrões para o template
+        # ======================================================
+        default_reitor=default_reitor,
+        default_local=default_local
+        # ======================================================
+        # FIM DA ALTERAÇÃO
+        # ======================================================
     )
 
 @certificado_bp.route('/painel_declaracoes')
@@ -89,14 +108,14 @@ def gerar_certificado():
         id_candidato = request.form.get('id_candidato')
         template_selecionado = request.form.get('template_selecionado') # 'modeloposse.docx'
         data_nomeacao_str = request.form.get('data') 
-        data_emissao_str = request.form.get('data_1')
+        data_emissao_str = request.form.get('data_1') # Este campo não parece estar sendo usado no modal
         local = request.form.get('local')
         reitor = request.form.get('reitor')
 
         campos_obrigatorios = {
             'Candidato': id_candidato,
             'Template': template_selecionado,
-            'Data de Nomeação': data_nomeacao_str,
+            'Data de Posse': data_nomeacao_str, # O label no form é 'Data de Posse'
             'Portaria': request.form.get('portaria'),
             'Local': local,
             'Reitor': reitor
@@ -107,6 +126,7 @@ def gerar_certificado():
                 flash(f'O campo "{nome_campo}" é obrigatório e não foi preenchido.', 'error')
                 return redirect(url_for('certificado.painel_certificados'))
 
+        # O 'get_by_id' agora também busca 'portaria' e 'lotacao', mas não precisamos deles aqui
         candidato = Candidato.get_by_id(id_candidato)
         if not candidato:
             flash('Candidato não encontrado.', 'error')
@@ -210,9 +230,9 @@ def gerar_lote():
                     'reitor': row['reitor'],
                     'portaria': row['portaria'],
                     'dou': '', 
-                    'carga_horaria': row['carga_horaria'],
-                    'lotacao': row['lotacao'],
-                    'codigo_vaga': row['codigo_vaga'],
+                    'carga_horaria': row.get('carga_horaria', '40'), # Valor padrão caso não exista
+                    'lotacao': row.get('lotacao', ''),
+                    'codigo_vaga': row.get('codigo_vaga', ''),
                     'data_1': data_emissao_extenso,
                 }
 

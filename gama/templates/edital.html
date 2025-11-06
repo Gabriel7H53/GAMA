@@ -232,7 +232,23 @@
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="portaria" class="form-label">Portaria</label>
+                            <input type="text" id="portaria" name="portaria" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="lotacao" class="form-label">Lotação</label>
+                            <select id="lotacao" name="lotacao" class="form-input">
+                                <option value="">-- Nenhuma --</option>
+                                {% for unidade in opcoes_unidade %}
+                                    <option value="{{ unidade.valor_opcao }}">{{ unidade.valor_opcao }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeCandidatoModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar</button>
@@ -350,6 +366,7 @@
                 const candidato = JSON.parse(buttonElement.getAttribute('data-candidato'));
                 document.getElementById('candidatoModalTitle').innerText = 'Editar Candidato';
                 candidatoForm.action = `/edital/candidato/editar/${candidato[0]}`; // Define a action para editar
+                
                 // Preenche os campos do formulário com os dados do candidato
                 document.getElementById('id_edital_hidden_candidato').value = candidato[10]; // ID do Edital
                 document.getElementById('id_candidato').value = candidato[0]; // ID do Candidato
@@ -362,8 +379,16 @@
                 document.getElementById('situacao').value = candidato[8];
                 document.getElementById('data_posse').value = candidato[9] || '';
                 document.getElementById('nome_cargo').value = candidato[11]; // Nome do Cargo
-                // ATUALIZADO: Preenche o Padrão de Vencimento
-                document.getElementById('padrao_vencimento').value = candidato[12] || ''; // Assume índice 12
+                document.getElementById('padrao_vencimento').value = candidato[12] || ''; // Padrão Vencimento
+
+                // ======================================================
+                // ALTERAÇÃO AQUI: Preenchendo os novos campos
+                // ======================================================
+                document.getElementById('portaria').value = candidato[13] || ''; // Índice 13 para portaria
+                document.getElementById('lotacao').value = candidato[14] || ''; // Índice 14 para lotacao
+                // ======================================================
+                // FIM DA ALTERAÇÃO
+                // ======================================================
             }
             candidatoModal.classList.add('active'); // Mostra o modal
         }
