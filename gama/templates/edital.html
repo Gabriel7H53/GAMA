@@ -64,6 +64,8 @@
                     </div>
                     <div class="actions">
                         <button class="icon-button" title="Nomear em Lote" onclick="event.stopPropagation(); openNomearLoteModal({{ edital[0] }});"><i class="fas fa-user-check"></i></button>
+                        <button class="icon-button" title="Empossar em Lote (marcar nomeados como empossados)" onclick="event.stopPropagation(); openEmpossarLoteModal({{ edital[0] }});"><i class="fas fa-id-badge"></i></button>
+                        
                         <button class="icon-button" title="Adicionar em Lote" onclick="event.stopPropagation(); openLoteModal({{ edital[0] }});"><i class="fas fa-file-upload"></i></button>
                         <button class="icon-button" title="Adicionar Candidato" onclick="event.stopPropagation(); openCandidatoModal(null, {{ edital[0] }});"><i class="fas fa-user-plus"></i></button>
                         <button class="icon-button" title="Editar Edital" data-edital='{{ edital|tojson }}' onclick="event.stopPropagation(); openEditalModal(this)"><i class="fas fa-edit"></i></button>
@@ -90,7 +92,15 @@
                                                 <td>{{ candidato[1] }}{% if candidato[6] %}<span class="badge badge-info">PCD</span>{% endif %}{% if candidato[7] %}<span class="badge badge-info">Cotista</span>{% endif %}</td>
                                                 <td>{{ candidato[2] }}</td>
                                                 <td>{{ "%.2f"|format(candidato[3]) }}</td>
-                                                <td>{% if candidato[8] == 'nomeado' %}Nomeado{% elif candidato[8] == 'homologado' %}Homologado{% elif candidato[8] == 'sem_efeito' %}Sem Efeito{% else %}{{ candidato[8] }}{% endif %}</td>
+                                                
+                                                <td>
+                                                    {% if candidato[8] == 'nomeado' %}Nomeado
+                                                    {% elif candidato[8] == 'homologado' %}Homologado
+                                                    {% elif candidato[8] == 'sem_efeito' %}Sem Efeito
+                                                    {% elif candidato[8] == 'empossado' %}<span style="color: #166534; font-weight: bold;">Empossado</span>
+                                                    {% else %}{{ candidato[8] }}{% endif %}
+                                                </td>
+                                                
                                                 <td class="actions">
                                                     <button class="icon-button" title="Editar Candidato" data-candidato='{{ candidato|tojson }}' onclick="openCandidatoModal(this)"><i class="fas fa-edit"></i></button>
                                                     <form action="{{ url_for('edital.remover_candidato', id_candidato=candidato[0]) }}" method="POST" onsubmit="return confirm('Deseja remover este candidato?');" style="display:inline;">
@@ -213,6 +223,7 @@
                             <select id="situacao" name="situacao" required>
                                 <option value="homologado">Homologado</option>
                                 <option value="nomeado">Nomeado</option>
+                                <option value="empossado">Empossado</option>
                                 <option value="sem_efeito">Tornado Sem Efeito</option>
                             </select>
                         </div>
@@ -248,7 +259,7 @@
                             </select>
                         </div>
                     </div>
-                    </div>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeCandidatoModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar</button>
@@ -308,6 +319,31 @@
         </div>
     </div>
 
+    <div id="empossarLoteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Empossar Candidatos (Nomeados)</h3>
+                <button class="icon-button" onclick="closeEmpossarLoteModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="empossarLoteForm" method="POST">
+                <div class="modal-body">
+                    <p>Selecione os candidatos <strong>nomeados</strong> que deseja marcar como <strong>"Empossado"</strong>.</p>
+                    <hr>
+                    <label>
+                        <input type="checkbox" id="selecionarTodosCandidatosEmpossar"> <strong>Selecionar todos</strong>
+                    </label>
+                    <div id="listaCandidatosEmpossar" class="candidato-list-container">
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEmpossarLoteModal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('empossarLoteForm').submit();">Salvar Empossados</button>
+                    </div>
+            </form>
+        </div>
+    </div>
+
+
     <script>
         // Transforma os dados Python em JSON seguro para JavaScript
         const todosOsCandidatosSimples = {{ candidatos_por_edital_simples|tojson }};
@@ -327,49 +363,46 @@
         const editalModal = document.getElementById('editalModal');
         const editalForm = document.getElementById('editalForm');
         function openEditalModal(buttonElement) {
-            editalForm.reset(); // Limpa o formulário
-            if (!buttonElement) { // Modo Adicionar
+            editalForm.reset(); 
+            if (!buttonElement) { 
                 document.getElementById('editalModalTitle').innerText = 'Adicionar Novo Edital';
                 editalForm.action = "{{ url_for('edital.adicionar_edital') }}";
-                // Limpa campos ocultos se necessário (já feito pelo reset)
                 document.getElementById('id_edital').value = '';
-            } else { // Modo Editar
+            } else { 
                 const edital = JSON.parse(buttonElement.getAttribute('data-edital'));
                 document.getElementById('editalModalTitle').innerText = 'Editar Edital';
-                editalForm.action = `/edital/editar/${edital[0]}`; // Define a action para a rota de edição
-                // Preenche os campos do formulário com os dados do edital
+                editalForm.action = `/edital/editar/${edital[0]}`; 
                 document.getElementById('id_edital').value = edital[0];
                 document.getElementById('numero_edital').value = edital[1];
                 document.getElementById('data_edital').value = edital[2];
                 document.getElementById('data_publicacao').value = edital[3];
                 document.getElementById('vencimento_edital').value = edital[4];
-                document.getElementById('prazo_prorrogacao').value = edital[5] || ''; // Garante que seja string vazia se for null/0
+                document.getElementById('prazo_prorrogacao').value = edital[5] || ''; 
                 document.getElementById('status').value = edital[6];
             }
-            editalModal.classList.add('active'); // Mostra o modal
+            editalModal.classList.add('active'); 
         }
         function closeEditalModal() {
-            editalModal.classList.remove('active'); // Esconde o modal
+            editalModal.classList.remove('active'); 
         }
 
         // --- Modal Candidato ---
         const candidatoModal = document.getElementById('candidatoModal');
         const candidatoForm = document.getElementById('candidatoForm');
         function openCandidatoModal(buttonElement, id_edital_for_new = null) {
-            candidatoForm.reset(); // Limpa o formulário
-            if (!buttonElement) { // Modo Adicionar
+            candidatoForm.reset(); 
+            if (!buttonElement) { 
                 document.getElementById('candidatoModalTitle').innerText = 'Adicionar Candidato';
-                document.getElementById('id_edital_hidden_candidato').value = id_edital_for_new; // Define o ID do edital no campo oculto
-                candidatoForm.action = `/edital/${id_edital_for_new}/candidato/adicionar`; // Define a action para adicionar
-                document.getElementById('id_candidato').value = ''; // Limpa ID do candidato
-            } else { // Modo Editar
+                document.getElementById('id_edital_hidden_candidato').value = id_edital_for_new; 
+                candidatoForm.action = `/edital/${id_edital_for_new}/candidato/adicionar`; 
+                document.getElementById('id_candidato').value = ''; 
+            } else { 
                 const candidato = JSON.parse(buttonElement.getAttribute('data-candidato'));
                 document.getElementById('candidatoModalTitle').innerText = 'Editar Candidato';
-                candidatoForm.action = `/edital/candidato/editar/${candidato[0]}`; // Define a action para editar
+                candidatoForm.action = `/edital/candidato/editar/${candidato[0]}`; 
                 
-                // Preenche os campos do formulário com os dados do candidato
-                document.getElementById('id_edital_hidden_candidato').value = candidato[10]; // ID do Edital
-                document.getElementById('id_candidato').value = candidato[0]; // ID do Candidato
+                document.getElementById('id_edital_hidden_candidato').value = candidato[10]; 
+                document.getElementById('id_candidato').value = candidato[0]; 
                 document.getElementById('nome').value = candidato[1];
                 document.getElementById('numero_inscricao').value = candidato[2];
                 document.getElementById('nota').value = candidato[3];
@@ -378,34 +411,27 @@
                 document.getElementById('cotista').checked = candidato[7];
                 document.getElementById('situacao').value = candidato[8];
                 document.getElementById('data_posse').value = candidato[9] || '';
-                document.getElementById('nome_cargo').value = candidato[11]; // Nome do Cargo
-                document.getElementById('padrao_vencimento').value = candidato[12] || ''; // Padrão Vencimento
-
-                // ======================================================
-                // ALTERAÇÃO AQUI: Preenchendo os novos campos
-                // ======================================================
-                document.getElementById('portaria').value = candidato[13] || ''; // Índice 13 para portaria
-                document.getElementById('lotacao').value = candidato[14] || ''; // Índice 14 para lotacao
-                // ======================================================
-                // FIM DA ALTERAÇÃO
-                // ======================================================
+                document.getElementById('nome_cargo').value = candidato[11]; 
+                document.getElementById('padrao_vencimento').value = candidato[12] || '';
+                document.getElementById('portaria').value = candidato[13] || ''; 
+                document.getElementById('lotacao').value = candidato[14] || '';
             }
-            candidatoModal.classList.add('active'); // Mostra o modal
+            candidatoModal.classList.add('active'); 
         }
         function closeCandidatoModal() {
-            candidatoModal.classList.remove('active'); // Esconde o modal
+            candidatoModal.classList.remove('active'); 
         }
 
         // --- Modal Adicionar Lote ---
         const loteModal = document.getElementById('loteModal');
         const loteForm = document.getElementById('loteForm');
         function openLoteModal(id_edital) {
-            loteForm.reset(); // Limpa o formulário (incluindo seleção de arquivo)
-            loteForm.action = `/edital/${id_edital}/candidato/adicionar_lote`; // Define a action correta
-            loteModal.classList.add('active'); // Mostra o modal
+            loteForm.reset(); 
+            loteForm.action = `/edital/${id_edital}/candidato/adicionar_lote`; 
+            loteModal.classList.add('active'); 
         }
         function closeLoteModal() {
-            loteModal.classList.remove('active'); // Esconde o modal
+            loteModal.classList.remove('active'); 
         }
 
         // --- Modal Nomear Lote ---
@@ -413,24 +439,22 @@
         const nomearLoteForm = document.getElementById('nomearLoteForm');
         const listaCandidatosDiv = document.getElementById('listaCandidatosNomear');
         const checkboxSelecionarTodos = document.getElementById('selecionarTodosCandidatos');
+        
         function openNomearLoteModal(id_edital) {
-            nomearLoteForm.reset(); // Limpa o formulário
-            nomearLoteForm.action = `/edital/${id_edital}/candidato/nomear_lote`; // Define a action correta
-            listaCandidatosDiv.innerHTML = ''; // Limpa a lista anterior
-            checkboxSelecionarTodos.checked = false; // Desmarca o 'selecionar todos'
+            nomearLoteForm.reset(); 
+            nomearLoteForm.action = `/edital/${id_edital}/candidato/nomear_lote`; 
+            listaCandidatosDiv.innerHTML = ''; 
+            checkboxSelecionarTodos.checked = false; 
 
-            // Pega os candidatos do edital específico do objeto JS
             const candidatosDoEdital = todosOsCandidatosSimples[id_edital] || [];
-            // Filtra apenas os candidatos com situação 'homologado' (índice 8)
             const candidatosANomear = candidatosDoEdital.filter(c => c[8] === 'homologado');
 
             if (candidatosANomear.length === 0) {
                 listaCandidatosDiv.innerHTML = '<p>Não há candidatos homologados para nomear neste edital.</p>';
-                nomearLoteModal.classList.add('active'); // Mostra o modal mesmo sem candidatos
-                return; // Encerra a função
+                nomearLoteModal.classList.add('active'); 
+                return; 
             }
 
-            // Agrupa os candidatos por cargo (índice 11)
             const candidatosPorCargo = {};
             candidatosANomear.forEach(candidato => {
                 const nomeCargo = candidato[11];
@@ -440,41 +464,104 @@
                 candidatosPorCargo[nomeCargo].push(candidato);
             });
 
-            // Cria o HTML da lista agrupada
             for (const cargo in candidatosPorCargo) {
                 const subtitulo = document.createElement('h5');
                 subtitulo.className = 'cargo-subtitle';
                 subtitulo.textContent = cargo;
                 listaCandidatosDiv.appendChild(subtitulo);
 
-                // Adiciona um checkbox para cada candidato dentro do grupo de cargo
                 candidatosPorCargo[cargo].forEach(candidato => {
                     const label = document.createElement('label');
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
-                    checkbox.name = 'candidato_ids'; // Nome usado no backend para getlist
-                    checkbox.value = candidato[0]; // ID do candidato
+                    checkbox.name = 'candidato_ids'; 
+                    checkbox.value = candidato[0]; 
                     label.appendChild(checkbox);
-                    // Texto: Classificaçãoº - Nome
                     label.appendChild(document.createTextNode(` ${candidato[5]}º - ${candidato[1]}`));
                     listaCandidatosDiv.appendChild(label);
                 });
             }
 
-            nomearLoteModal.classList.add('active'); // Mostra o modal
+            nomearLoteModal.classList.add('active'); 
         }
         function closeNomearLoteModal() {
-            nomearLoteModal.classList.remove('active'); // Esconde o modal
-            checkboxSelecionarTodos.checked = false; // Garante que 'selecionar todos' seja desmarcado ao fechar
+            nomearLoteModal.classList.remove('active'); 
+            checkboxSelecionarTodos.checked = false; 
         }
 
-        // --- Event Listener para "Selecionar Todos" ---
+        // --- Event Listener para "Selecionar Todos" (Nomear) ---
         checkboxSelecionarTodos.addEventListener('change', function() {
             const todosOsCheckboxes = listaCandidatosDiv.querySelectorAll('input[type="checkbox"]');
             todosOsCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked; // Marca/desmarca todos baseado no estado do 'selecionar todos'
+                checkbox.checked = this.checked; 
             });
         });
+
+
+        // --- JavaScript Modal Empossar em Lote ---
+        const empossarLoteModal = document.getElementById('empossarLoteModal');
+        const empossarLoteForm = document.getElementById('empossarLoteForm');
+        const listaCandidatosEmpossarDiv = document.getElementById('listaCandidatosEmpossar');
+        const checkboxSelecionarTodosEmpossar = document.getElementById('selecionarTodosCandidatosEmpossar');
+
+        function openEmpossarLoteModal(id_edital) {
+            empossarLoteForm.reset();
+            empossarLoteForm.action = `/edital/${id_edital}/candidato/empossar_lote`; 
+            listaCandidatosEmpossarDiv.innerHTML = '';
+            checkboxSelecionarTodosEmpossar.checked = false;
+
+            const candidatosDoEdital = todosOsCandidatosSimples[id_edital] || [];
+            const candidatosAEmpossar = candidatosDoEdital.filter(c => c[8] === 'nomeado');
+
+            if (candidatosAEmpossar.length === 0) {
+                listaCandidatosEmpossarDiv.innerHTML = '<p>Não há candidatos nomeados para empossar neste edital.</p>';
+                empossarLoteModal.classList.add('active');
+                return;
+            }
+
+            const candidatosPorCargo = {};
+            candidatosAEmpossar.forEach(candidato => {
+                const nomeCargo = candidato[11];
+                if (!candidatosPorCargo[nomeCargo]) {
+                    candidatosPorCargo[nomeCargo] = [];
+                }
+                candidatosPorCargo[nomeCargo].push(candidato);
+            });
+
+            for (const cargo in candidatosPorCargo) {
+                const subtitulo = document.createElement('h5');
+                subtitulo.className = 'cargo-subtitle';
+                subtitulo.textContent = cargo;
+                listaCandidatosEmpossarDiv.appendChild(subtitulo);
+
+                candidatosPorCargo[cargo].forEach(candidato => {
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = 'candidato_ids_empossar'; 
+                    checkbox.value = candidato[0];
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(` ${candidato[5]}º - ${candidato[1]}`));
+                    listaCandidatosEmpossarDiv.appendChild(label);
+                });
+            }
+
+            empossarLoteModal.classList.add('active');
+        }
+
+        function closeEmpossarLoteModal() {
+            empossarLoteModal.classList.remove('active');
+            checkboxSelecionarTodosEmpossar.checked = false;
+        }
+
+        // --- Event Listener para "Selecionar Todos" (Empossar) ---
+        checkboxSelecionarTodosEmpossar.addEventListener('change', function() {
+            const todosOsCheckboxes = listaCandidatosEmpossarDiv.querySelectorAll('input[type="checkbox"]');
+            todosOsCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+
 
         // --- Fechar Modais ao clicar fora ---
         window.onclick = function(event) {
@@ -482,6 +569,7 @@
             if (event.target == candidatoModal) closeCandidatoModal();
             if (event.target == loteModal) closeLoteModal();
             if (event.target == nomearLoteModal) closeNomearLoteModal();
+            if (event.target == empossarLoteModal) closeEmpossarLoteModal();
         }
 
         // --- Auto-fechar Alertas (Flash Messages) ---
@@ -489,12 +577,12 @@
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(function(alert) {
                 setTimeout(function() {
-                    alert.style.transition = 'opacity 0.5s ease'; // Adiciona transição de opacidade
-                    alert.style.opacity = '0'; // Inicia o fade out
+                    alert.style.transition = 'opacity 0.5s ease'; 
+                    alert.style.opacity = '0'; 
                     setTimeout(function() {
-                        alert.style.display = 'none'; // Remove após o fade out
-                    }, 500); // Tempo da transição
-                }, 3000); // Tempo até começar a desaparecer (3 segundos)
+                        alert.style.display = 'none'; 
+                    }, 500); 
+                }, 3000); 
             });
         });
     </script>

@@ -59,7 +59,7 @@ def criar_tabelas():
         classificacao INTEGER NOT NULL,
         pcd BOOLEAN NOT NULL,
         cotista BOOLEAN NOT NULL,
-        situacao TEXT NOT NULL CHECK (situacao IN ('nomeado', 'homologado', 'sem_efeito')),
+        situacao TEXT NOT NULL CHECK (situacao IN ('nomeado', 'homologado', 'sem_efeito', 'empossado')),
         data_posse DATE,
         id_edital INTEGER NOT NULL,
         portaria TEXT,

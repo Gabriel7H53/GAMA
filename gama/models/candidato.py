@@ -136,6 +136,27 @@ class Candidato:
             conn.close()
 
     @staticmethod
+    def empossar(id_candidato):
+        """Atualiza a situação de um candidato para 'empossado'."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            # Esta função APENAS muda o status. Não mexe na data de posse.
+            cursor.execute("""
+                UPDATE Candidato
+                SET situacao = 'empossado'
+                WHERE id_candidato = ?
+            """, (id_candidato,))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao empossar candidato {id_candidato}: {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()
+
+    @staticmethod
     def search_by_name(query):
         """Busca nomes de candidatos para autocompletar, retornando nomes únicos."""
         conn = conectar()

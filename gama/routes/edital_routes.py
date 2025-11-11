@@ -340,6 +340,29 @@ def nomear_lote(id_edital):
 
     return redirect(url_for('edital.painel'))
 
+@edital_bp.route('/<int:id_edital>/candidato/empossar_lote', methods=['POST'])
+def empossar_lote(id_edital):
+    if not check_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('auth.login'))
+
+    # Usamos um nome de form diferente para os IDs
+    ids_candidatos_selecionados = request.form.getlist('candidato_ids_empossar') 
+
+    if not ids_candidatos_selecionados:
+        flash('Nenhum candidato foi selecionado.', 'error')
+        return redirect(url_for('edital.painel'))
+
+    empossados_com_sucesso = 0
+    for id_candidato in ids_candidatos_selecionados:
+        if Candidato.empossar(id_candidato): # Chama o novo método do model
+            empossados_com_sucesso += 1
+    
+    if empossados_com_sucesso > 0:
+        flash(f'{empossados_com_sucesso} candidato(s) marcado(s) como "Empossado" com sucesso!', 'success')
+
+    return redirect(url_for('edital.painel'))
+
 @edital_bp.route('/api/candidatos/search')
 def search_candidatos():
     # Pega o texto digitado que veio como parâmetro na URL (ex: /api/candidatos/search?query=Joao)
