@@ -89,40 +89,96 @@ def editar_usuario():
     flash(message, 'success' if success else 'error')
     return redirect(url_for('usuarios.config_usuarios'))
 
+# ==================================================================
+# ROTA 'AGENDAMENTOS' TOTALMENTE REESCRITA (AGORA CONTROLE DE DOCUMENTOS)
+# ==================================================================
 @usuario_bp.route('/agendamentos')
 def agendamentos():
     if 'usuario_id' not in session:
         return redirect(url_for('auth.login'))
 
     todos_editais = Edital.get_all()
-    agendamentos_por_edital = {}
+    dados_pagina = {}
 
     for edital in todos_editais:
         id_edital = edital[0]
-        # Estrutura para guardar os dois tipos de agendamento
-        agendamentos_por_edital[id_edital] = {
-            'documentos': [],
-            'pericias': []
+        dados_pagina[id_edital] = {
+            'candidatos': [],
+            'agend_docs': [],
+            'agend_pericias': []
         }
-        
-        # Busca todos os agendamentos do edital
-        lista_completa_agendamentos = Agendamento.get_by_edital(id_edital)
 
-        # Separa a lista por tipo
-        for agendamento in lista_completa_agendamentos:
-            # O tipo_agendamento é a 7ª coluna (índice 6)
-            tipo = agendamento[6] 
-            if tipo == 'pericia':
-                agendamentos_por_edital[id_edital]['pericias'].append(agendamento)
-            else: # 'documento' é o padrão
-                agendamentos_por_edital[id_edital]['documentos'].append(agendamento)
+        # 1. Buscar todos os agendamentos do edital
+        agendamentos_edital = Agendamento.get_by_edital(id_edital)
+
+        # 2. Criar listas e lookups de agendamentos
+        docs_agendados = {}
+        docs_entregues = {}
+        pericia_agendada = {}
+        pericia_concluida = {}
+
+        for ag in agendamentos_edital:
+            # Índices: [2]=nome, [5]=status, [6]=tipo
+            nome_candidato = ag[2]
+            if ag[6] == 'documento':
+                if ag[5] == 'concluido':
+                    docs_entregues[nome_candidato] = 'entregue'
+                elif ag[5] == 'agendado':
+                    docs_agendados[nome_candidato] = 'agendado'
+                # Adiciona à lista de exibição (seção 2)
+                dados_pagina[id_edital]['agend_docs'].append(ag)
+            
+            elif ag[6] == 'pericia':
+                if ag[5] == 'concluido':
+                    pericia_concluida[nome_candidato] = 'concluida'
+                elif ag[5] == 'agendado':
+                    pericia_agendada[nome_candidato] = 'agendado'
+                # Adiciona à lista de exibição (seção 2)
+                dados_pagina[id_edital]['agend_pericias'].append(ag)
+
+        # 3. Buscar candidatos e processar status
+        todos_candidatos_do_edital = Candidato.get_by_edital(id_edital)
+        
+        # Filtra apenas nomeados (índice 8 = situacao)
+        candidatos_nomeados = [c for c in todos_candidatos_do_edital if c[8] == 'nomeado']
+        
+        lista_candidatos_final = []
+        for c in candidatos_nomeados:
+            # Índices: [0]=id, [1]=nome, [15]=contatado
+            id_candidato = c[0]
+            nome_candidato = c[1]
+            contatado = c[15] 
+
+            # Define o status do documento
+            status_doc = docs_entregues.get(nome_candidato, docs_agendados.get(nome_candidato, 'agendar'))
+            
+            # Define o status da perícia
+            status_pericia = pericia_concluida.get(nome_candidato, pericia_agendada.get(nome_candidato, 'agendar'))
+
+            lista_candidatos_final.append({
+                'id': id_candidato,
+                'nome': nome_candidato,
+                'contatado': contatado,
+                'status_doc': status_doc,
+                'status_pericia': status_pericia
+            })
+        
+        dados_pagina[id_edital]['candidatos'] = lista_candidatos_final
+        
+        # 4. Ordenar listas de agendamento (concluídos por último)
+        dados_pagina[id_edital]['agend_docs'].sort(key=lambda x: x[5] == 'concluido')
+        dados_pagina[id_edital]['agend_pericias'].sort(key=lambda x: x[5] == 'concluido')
+
 
     return render_template(
         'agendamentos.html', 
         nome=session.get('nome'), 
         editais=todos_editais,
-        agendamentos_por_edital=agendamentos_por_edital
+        dados_pagina=dados_pagina # Passa a nova estrutura de dados
     )
+# ==================================================================
+# FIM DA REESCRITA DA ROTA
+# ==================================================================
 
 
 @usuario_bp.route('/agendamento/criar', methods=['POST'])
@@ -138,18 +194,14 @@ def criar_agendamento():
         hora = request.form['hora_agendamento']
         tipo_agendamento = request.form.get('tipo_agendamento', 'documento')
         
-        # ID do agendamento de documento que será concluído (se houver)
         id_documento_a_concluir = request.form.get('id_documento_a_concluir')
 
         data_hora_agendamento = datetime.strptime(f"{data} {hora}", '%Y-%m-%d %H:%M')
         id_usuario_logado = session['usuario_id']
 
-        # NOVA LÓGICA: Se estamos criando uma perícia E recebemos um ID de documento...
         if tipo_agendamento == 'pericia' and id_documento_a_concluir:
-            # 1. Marque o agendamento de documento original como 'concluido'
             Agendamento.update_status(id_documento_a_concluir, 'concluido')
 
-        # 2. Crie o novo agendamento (seja documento ou perícia)
         success, message = Agendamento.create(
             id_edital, id_usuario_logado, data_hora_agendamento, nome_pessoa, tipo_agendamento
         )
@@ -166,16 +218,11 @@ def criar_agendamento():
 
 @usuario_bp.route('/agendamento/concluir_pericia/<int:id_agendamento>', methods=['POST'])
 def concluir_pericia(id_agendamento):
-    """
-    Rota para marcar uma perícia específica como 'concluida' (Realizada)
-    com um único clique.
-    """
     if 'usuario_id' not in session:
         flash('Acesso negado.', 'error')
         return redirect(url_for('auth.login'))
 
     try:
-        # Reutilizamos o método que criamos anteriormente
         success, message = Agendamento.update_status(id_agendamento, 'concluido')
         
         if success:
@@ -209,10 +256,9 @@ def editar_agendamento(id_agendamento):
         nome_pessoa = request.form['nome_pessoa']
         data = request.form['data_agendamento']
         hora = request.form['hora_agendamento']
-        status = request.form['status_agendamento'] # <-- Pega o novo campo do formulário
+        status = request.form['status_agendamento'] 
         data_hora = datetime.strptime(f"{data} {hora}", '%Y-%m-%d %H:%M')
 
-        # Passa o status para o método de update
         success, message = Agendamento.update(id_agendamento, data_hora, nome_pessoa, status)
         flash(message, 'success' if success else 'error')
     except Exception as e:
@@ -230,3 +276,32 @@ def remover_agendamento(id_agendamento):
     flash(message, 'success' if success else 'error')
     
     return redirect(url_for('usuarios.agendamentos'))
+
+# ======================================================
+# NOVA ROTA ADICIONADA
+# ======================================================
+@usuario_bp.route('/candidato/toggle_contatado', methods=['POST'])
+def toggle_contatado():
+    if 'usuario_id' not in session:
+        return jsonify({"success": False, "message": "Acesso negado."}), 401
+    
+    try:
+        data = request.get_json()
+        id_candidato = data.get('id_candidato')
+        novo_status = data.get('status')
+
+        if id_candidato is None:
+            return jsonify({"success": False, "message": "ID do candidato não fornecido."}), 400
+
+        success = Candidato.set_contatado(id_candidato, novo_status)
+        
+        if success:
+            return jsonify({"success": True, "novo_status": novo_status})
+        else:
+            return jsonify({"success": False, "message": "Erro ao atualizar o banco de dados."}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+# ======================================================
+# FIM DA NOVA ROTA
+# ======================================================

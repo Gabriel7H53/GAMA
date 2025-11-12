@@ -64,6 +64,7 @@ def criar_tabelas():
         id_edital INTEGER NOT NULL,
         portaria TEXT,
         lotacao TEXT,
+        contatado BOOLEAN NOT NULL DEFAULT 0,
         FOREIGN KEY (id_cargo) REFERENCES Cargo(id_cargo),
         FOREIGN KEY (id_edital) REFERENCES Edital(id_edital)
     );

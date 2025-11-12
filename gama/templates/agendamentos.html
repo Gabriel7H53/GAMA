@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agendamentos - GAMA</title>
+    <title>Controle de Documentos - GAMA</title>
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
@@ -11,96 +12,82 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
 
     <style>
-        .agendamentos-table {
-            table-layout: fixed;
-            width: 100%;
-            border-collapse: collapse;
-        }
-
+        /* Estilos da tabela de agendamentos (do arquivo antigo) */
+        .agendamentos-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
         .agendamentos-table th,
-        .agendamentos-table td {
-            padding: 12px 10px;    
-            text-align: left;
-            vertical-align: middle;  
-            word-wrap: break-word;     
-            border-bottom: 1px solid #e5e7eb; 
-        }
-        
-        .agendamentos-table tr:last-child td {
-             border-bottom: none;
-        }
-
+        .agendamentos-table td { padding: 12px 10px; text-align: left; vertical-align: middle; word-wrap: break-word; border-bottom: 1px solid #e5e7eb; }
+        .agendamentos-table tr:last-child td { border-bottom: none; }
         .agendamentos-table th:nth-child(1), .agendamentos-table td:nth-child(1) { width: 12%; } /* Data */
         .agendamentos-table th:nth-child(2), .agendamentos-table td:nth-child(2) { width: 7%; }  /* Hora */
         .agendamentos-table th:nth-child(3), .agendamentos-table td:nth-child(3) { width: 28%; } /* Candidato */
         .agendamentos-table th:nth-child(4), .agendamentos-table td:nth-child(4) { width: 15%; } /* Agendado por */
         .agendamentos-table th:nth-child(5), .agendamentos-table td:nth-child(5) { width: 12%; } /* Status */
         .agendamentos-table th:nth-child(6), .agendamentos-table td:nth-child(6) { width: 26%; } /* Ações */
+        .agendamentos-table .actions { white-space: nowrap; }
 
-        .agendamentos-table .actions {
-            white-space: nowrap;
-        }
-
-        .sub-section-title {
-            margin-top: 1.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem;
-            border-bottom: 1px solid #ddd; font-size: 1.1rem; color: #333;
-        }
-
-        .actions .btn-sm.btn-success {
-            display: inline-flex;     
-            align-items: center;       
-            background-color: #2563EB; 
-            color: white;
-            border: none;
-            border-radius: 6px;        
-            padding: 6px 12px;        
-            font-size: 0.8rem;
-            font-weight: 500;     
-            cursor: pointer;
-            transition: all 0.2s ease; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-        }
-
-        .actions .btn-sm.btn-success:hover {
-            background-color: #4338CA; 
-            transform: translateY(-2px); 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .actions .btn-sm.btn-success:active {
-            transform: translateY(0);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .fa-user-md {
-            margin-right: 6px;
-        }
+        /* Estilos para a nova tabela de Candidatos */
+        .candidatos-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+        .candidatos-table th,
+        .candidatos-table td { padding: 12px 10px; text-align: left; vertical-align: middle; border-bottom: 1px solid #e5e7eb; }
+        .candidatos-table th:nth-child(1) { width: 35%; } /* Nome */
+        .candidatos-table th:nth-child(2) { width: 15%; text-align: center; } /* Contatado */
+        .candidatos-table th:nth-child(3) { width: 25%; } /* Entrega Doc */
+        .candidatos-table th:nth-child(4) { width: 25%; } /* Perícia */
         
-        /* ADICIONADO: Estilo para o botão "Perícia OK" (caso você implemente o passo 1 do backend no futuro) */
-        .actions .btn-sm.btn-concluir {
+        .candidatos-table td:nth-child(2) { text-align: center; }
+
+        /* Botão de Contatado (liga/desliga) */
+        .btn-toggle {
             display: inline-flex;
             align-items: center;
-            background-color: var(--primary); /* Azul primário */
-            color: white;
-            border: none;
+            justify-content: center;
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #d1d5db;
             border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        /* ESTILO CSS CORRETO (depende de 'true' e 'false' como strings) */
+        .btn-toggle[data-contatado="true"] {
+            background-color: #dcfce7; /* Verde claro */
+            border-color: #16a34a;
+            color: #15803d; /* Verde escuro */
+        }
+        .btn-toggle[data-contatado="false"] {
+            background-color: #f3f4f6; /* Cinza claro */
+            color: #4b5563; /* Cinza escuro */
+        }
+        .btn-toggle[data-contatado="true"]:hover { background-color: #bbf7d0; }
+        .btn-toggle[data-contatado="false"]:hover { background-color: #e5e7eb; }
+        .btn-toggle .fas { margin-right: 6px; }
+
+        /* Botão "Agendar" pequeno */
+        .btn-agendar {
+            background-color: #3b82f6; /* Azul */
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
-        .actions .btn-sm.btn-concluir:hover {
-            background-color: var(--primary-dark); /* Azul escuro */
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .fa-check-square {
-             margin-right: 6px;
-        }
+        .btn-agendar:hover { background-color: #2563eb; }
 
+        /* Status de Agendamento */
+        .status-agendado { font-weight: 500; color: #d97706; /* Ambar */ }
+        .status-entregue { font-weight: 500; color: #16a34a; /* Verde */ }
+
+        /* Outros estilos */
+        .sub-section-title { margin-top: 1.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #ddd; font-size: 1.1rem; color: #333; }
+        .actions .btn-sm.btn-success { display: inline-flex; align-items: center; background-color: #2563EB; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .actions .btn-sm.btn-success:hover { background-color: #4338CA; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .actions .btn-sm.btn-success:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .fa-user-md { margin-right: 6px; }
+        .actions .btn-sm.btn-concluir { display: inline-flex; align-items: center; background-color: var(--primary); color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .actions .btn-sm.btn-concluir:hover { background-color: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .fa-check-square { margin-right: 6px; }
     </style>
     </head>
 <body>
@@ -122,7 +109,7 @@
 
         <main class="dashboard-content container">
             <div class="section-header">
-                <h2 class="page-title">Agendamentos</h2>
+                <h2 class="page-title">Controle de Documentos</h2>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -141,14 +128,75 @@
                     </div>
                     <div class="actions">
                         <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="event.stopPropagation(); openAgendamentoModal({{ edital[0] }});">
-                             Novo Ag. Documentos
+                            Novo Ag. Documentos
                         </button>
                     </div>
                 </div>
+                
                 <div class="edital-body" id="body-edital-{{ edital[0] }}">
-
-                    <h4 class="sub-section-title">Entrega de Documentos</h4>
-                    {% set lista_documentos = agendamentos_por_edital.get(edital[0], {}).get('documentos', []) %}
+                    
+                    <h4 class="sub-section-title">Candidatos Nomeados</h4>
+                    {% set lista_candidatos = dados_pagina[edital[0]].candidatos %}
+                    {% if lista_candidatos %}
+                        <table class="candidatos-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Contatado</th>
+                                    <th>Entrega de Documentos</th>
+                                    <th>Perícia Médica</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in lista_candidatos %}
+                                <tr>
+                                    <td>{{ c.nome }}</td>
+                                    <td>
+                                        <button class="btn-toggle" data-contatado="{{ 'true' if c.contatado else 'false' }}" data-id="{{ c.id }}" onclick="toggleContatado(this)">
+                                            {% if c.contatado %}
+                                                <i class="fas fa-check"></i> Sim
+                                            {% else %}
+                                                <i class="fas fa-times"></i> Não
+                                            {% endif %}
+                                        </button>
+                                        </td>
+                                    <td>
+                                        {% if c.status_doc == 'agendar' %}
+                                            <button class="btn-agendar" onclick="openAgendamentoModal({{ edital[0] }}, '{{ c.nome }}')">
+                                                Agendar
+                                            </button>
+                                        {% elif c.status_doc == 'agendado' %}
+                                            <span class="status-agendado">Agendado</span>
+                                        {% elif c.status_doc == 'entregue' %}
+                                            <span class="status-entregue">Entregue</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if c.status_pericia == 'agendar' %}
+                                            {% if c.status_doc == 'entregue' %}
+                                                <button class="btn-agendar" onclick="openPericiaModal({{ edital[0] }}, '{{ c.nome }}')">
+                                                    Agendar Perícia
+                                                </button>
+                                            {% else %}
+                                                <span style="color: #9ca3af;">(Aguardando Docs)</span>
+                                            {% endif %}
+                                        {% elif c.status_pericia == 'agendado' %}
+                                            <span class="status-agendado">Agendada</span>
+                                        {% elif c.status_pericia == 'concluida' %}
+                                            <span class="status-entregue">Concluída</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state" style="margin-bottom: 2rem;"><p>Nenhum candidato com situação "Nomeado" encontrado para este edital.</p></div>
+                    {% endif %}
+                    
+                    
+                    <h4 class="sub-section-title">Agendamentos: Entregas de Documentos</h4>
+                    {% set lista_documentos = dados_pagina[edital[0]].agend_docs %}
                     {% if lista_documentos %}
                         <table class="edital-table agendamentos-table">
                             <thead>
@@ -181,24 +229,19 @@
                                                 onclick="openAgendamentoModal(this)">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja remover este agendamento?');" style="display:inline;">
+                                        <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" method="POST" onsubmit="return confirm('Tem certeza?');" style="display:inline;">
                                             <button type="submit" class="icon-button" title="Remover Agendamento">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
-
-                                        {% if agendamento[5] == 'concluido' %}
-                                            <button class="btn-sm btn-success" title="Agendar Perícia Médica"
-                                                    onclick="openPericiaModal({{ edital[0] }}, '{{ agendamento[2] }}')">
-                                                <i class="fas fa-user-md"></i> Agendar Perícia
-                                            </button>
-                                        {% elif agendamento[5] == 'agendado' %}
+                                        
+                                        {% if agendamento[5] == 'agendado' %}
                                             <button class="btn-sm btn-success" title="Concluir entrega e agendar perícia"
                                                     onclick="openPericiaModal({{ edital[0] }}, '{{ agendamento[2] }}', {{ agendamento[0] }})">
                                                 <i class="fas fa-user-md"></i> Concluir e Agendar
                                             </button>
                                         {% endif %}
-                                        </td>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -207,8 +250,8 @@
                         <div class="empty-state"><p>Nenhum agendamento de documentos para este edital.</p></div>
                     {% endif %}
 
-                    <h4 class="sub-section-title">Perícia Médica</h4>
-                    {% set lista_pericias = agendamentos_por_edital.get(edital[0], {}).get('pericias', []) %}
+                    <h4 class="sub-section-title">Agendamentos: Perícia Médica</h4>
+                    {% set lista_pericias = dados_pagina[edital[0]].agend_pericias %}
                     {% if lista_pericias %}
                         <table class="edital-table agendamentos-table">
                             <thead>
@@ -242,7 +285,6 @@
                                         <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" method="POST" onsubmit="return confirm('Tem certeza?');" style="display:inline;">
                                             <button type="submit" class="icon-button" title="Remover Perícia"><i class="fas fa-trash-alt"></i></button>
                                         </form>
-
                                         {% if agendamento[5] == 'agendado' %}
                                             <form action="{{ url_for('usuarios.concluir_pericia', id_agendamento=agendamento[0]) }}" method="POST" style="display:inline; margin-left: 5px;">
                                                 <button type="submit" class="btn-sm btn-success" title="Marcar perícia como realizada">
@@ -250,7 +292,7 @@
                                                 </button>
                                             </form>
                                         {% endif %}
-                                        </td>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -277,6 +319,7 @@
                     <input type="hidden" name="tipo_agendamento" id="tipo_agendamento" value="documento">
                     
                     <input type="hidden" name="id_documento_a_concluir" id="id_documento_a_concluir" value="">
+                    
                     <div class="form-group">
                         <label for="nome_pessoa">Nome do Candidato</label>
                         <input type="text" id="nome_pessoa" name="nome_pessoa" required list="lista-nomes-sugestoes">
@@ -319,16 +362,20 @@
     const agendamentoForm = document.getElementById('agendamentoForm');
     const modalTitle = document.getElementById('modalTitle');
 
-    function openAgendamentoModal(elemento, tipo = 'documento') {
+    function openAgendamentoModal(elemento_ou_id_edital, nome_candidato = null, tipo = 'documento') {
         agendamentoForm.reset();
-        document.getElementById('nome_pessoa').readOnly = false;
-        document.getElementById('status_agendamento').style.display = 'block';
-        document.querySelector('label[for="status_agendamento"]').style.display = 'block';
-        document.getElementById('id_documento_a_concluir').value = ''; // Limpa o campo oculto
+        document.getElementById('id_documento_a_concluir').value = ''; 
+        
+        const inputNome = document.getElementById('nome_pessoa');
+        const statusSelect = document.getElementById('status_agendamento');
+        const statusLabel = document.querySelector('label[for="status_agendamento"]');
 
-        if (typeof elemento === 'object' && elemento.hasAttribute('data-agendamento')) {
-            const agendamento_data = JSON.parse(elemento.dataset.agendamento);
-            modalTitle.innerText = tipo === 'pericia' ? 'Editar Perícia Médica' : 'Editar Agendamento de Documentos';
+        statusSelect.style.display = 'block';
+        statusLabel.style.display = 'block';
+
+        if (typeof elemento_ou_id_edital === 'object' && elemento_ou_id_edital.hasAttribute('data-agendamento')) {
+            const agendamento_data = JSON.parse(elemento_ou_id_edital.dataset.agendamento);
+            modalTitle.innerText = tipo === 'pericia' ? 'Editar Perícia Médica' : 'Editar Agendamento';
             
             const id_agendamento = agendamento_data[0];
             const data_hora_str = agendamento_data[1];
@@ -338,27 +385,33 @@
             agendamentoForm.action = `/usuario/agendamento/editar/${id_agendamento}`;
             
             document.getElementById('id_agendamento').value = id_agendamento;
-            document.getElementById('nome_pessoa').value = nome;
+            inputNome.value = nome;
+            inputNome.readOnly = false; 
             document.getElementById('data_agendamento').value = data_hora_str.substring(0, 10);
             document.getElementById('hora_agendamento').value = data_hora_str.substring(11, 16);
-            document.getElementById('status_agendamento').value = status;
+            statusSelect.value = status;
         } 
         else {
-            const id_edital = elemento;
+            const id_edital = elemento_ou_id_edital;
             modalTitle.innerText = 'Novo Ag. de Documentos';
             agendamentoForm.action = "{{ url_for('usuarios.criar_agendamento') }}";
             document.getElementById('id_edital_agendamento').value = id_edital;
             document.getElementById('id_agendamento').value = '';
             document.getElementById('tipo_agendamento').value = 'documento';
-            document.getElementById('status_agendamento').value = 'agendado';
+            statusSelect.value = 'agendado';
+
+            if (nome_candidato) {
+                inputNome.value = nome_candidato;
+                inputNome.readOnly = true;
+            } else {
+                inputNome.value = '';
+                inputNome.readOnly = false;
+            }
         }
 
         agendamentoModal.classList.add('active');
     }
 
-    // ==============================================
-    // FUNÇÃO openPericiaModal ATUALIZADA
-    // ==============================================
     function openPericiaModal(id_edital, nome_candidato, id_documento_a_concluir = null) {
         agendamentoForm.reset();
         
@@ -371,7 +424,6 @@
         document.getElementById('nome_pessoa').value = nome_candidato;
         document.getElementById('nome_pessoa').readOnly = true;
         
-        // ADICIONADO: Define o ID do documento a ser concluído no campo oculto
         document.getElementById('id_documento_a_concluir').value = id_documento_a_concluir || '';
 
         document.getElementById('status_agendamento').value = 'agendado';
@@ -380,9 +432,6 @@
 
         agendamentoModal.classList.add('active');
     }
-    // ==============================================
-    // FIM DA ATUALIZAÇÃO
-    // ==============================================
 
     function closeAgendamentoModal() {
         agendamentoModal.classList.remove('active');
@@ -416,6 +465,44 @@
             console.error('Erro ao buscar sugestões:', error);
         }
     });
+    
+    async function toggleContatado(button) {
+        const id_candidato = button.dataset.id;
+        const estado_atual = button.dataset.contatado === 'true';
+        const novo_status = !estado_atual; 
+
+        try {
+            const response = await fetch("{{ url_for('usuarios.toggle_contatado') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_candidato: id_candidato,
+                    status: novo_status
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // ======================================================
+                // ALTERAÇÃO AQUI: Garante que o dataset seja 'true' ou 'false'
+                // ======================================================
+                button.dataset.contatado = data.novo_status ? 'true' : 'false';
+                // ======================================================
+                
+                if (data.novo_status) {
+                    button.innerHTML = '<i class="fas fa-check"></i> Sim';
+                } else {
+                    button.innerHTML = '<i class="fas fa-times"></i> Não';
+                }
+            } else {
+                alert('Erro ao atualizar o status: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erro no fetch:', error);
+            alert('Erro de conexão ao tentar atualizar o status.');
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         const alerts = document.querySelectorAll('.alert');

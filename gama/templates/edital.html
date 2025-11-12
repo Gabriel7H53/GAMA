@@ -20,7 +20,7 @@
                     {% if session.get('tipo') == 'administrador' %}
                         <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -233,13 +233,16 @@
                          <div class="form-group">
                             <label for="data_posse">Data da Posse</label>
                             <input type="date" id="data_posse" name="data_posse">
-                            <small class="form-help">Preencha apenas se a situação for "Nomeado".</small>
+                            <small class="form-help">Preencha apenas se a situação for "Nomeado" ou "Empossado".</small>
                         </div>
                          <div class="form-check-group" style="padding-top: 1.5rem;"> <div class="form-check">
                                 <input type="checkbox" id="pcd" name="pcd"><label for="pcd">Candidato PCD</label>
                             </div>
                             <div class="form-check">
                                 <input type="checkbox" id="cotista" name="cotista"><label for="cotista">Candidato Cotista</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="contatado" name="contatado"><label for="contatado">Contatado</label>
                             </div>
                         </div>
                     </div>
@@ -300,10 +303,7 @@
             </div>
             <form id="nomearLoteForm" method="POST">
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="data_posse_lote"><strong>Data de Posse para todos os selecionados:</strong></label>
-                        <input type="date" name="data_posse_lote" id="data_posse_lote" class="form-control" required>
-                    </div>
+                    <p>Selecione os candidatos <strong>homologados</strong> que deseja marcar como <strong>"Nomeado"</strong>.</p>
                     <hr>
                     <label>
                         <input type="checkbox" id="selecionarTodosCandidatos"> <strong>Selecionar todos</strong>
@@ -318,7 +318,6 @@
             </form>
         </div>
     </div>
-
     <div id="empossarLoteModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -327,8 +326,13 @@
             </div>
             <form id="empossarLoteForm" method="POST">
                 <div class="modal-body">
-                    <p>Selecione os candidatos <strong>nomeados</strong> que deseja marcar como <strong>"Empossado"</strong>.</p>
+                    <div class="form-group">
+                        <label for="data_posse_lote_empossar"><strong>Data de Posse para todos os selecionados:</strong></label>
+                        <input type="date" name="data_posse_lote_empossar" id="data_posse_lote_empossar" class="form-control" required>
+                    </div>
                     <hr>
+                    <p>Selecione os candidatos <strong>nomeados</strong> que deseja marcar como <strong>"Empossado"</strong>.</p>
+                    
                     <label>
                         <input type="checkbox" id="selecionarTodosCandidatosEmpossar"> <strong>Selecionar todos</strong>
                     </label>
@@ -338,12 +342,10 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeEmpossarLoteModal()">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="document.getElementById('empossarLoteForm').submit();">Salvar Empossados</button>
-                    </div>
+                </div>
             </form>
         </div>
     </div>
-
-
     <script>
         // Transforma os dados Python em JSON seguro para JavaScript
         const todosOsCandidatosSimples = {{ candidatos_por_edital_simples|tojson }};
@@ -415,6 +417,7 @@
                 document.getElementById('padrao_vencimento').value = candidato[12] || '';
                 document.getElementById('portaria').value = candidato[13] || ''; 
                 document.getElementById('lotacao').value = candidato[14] || '';
+                document.getElementById('contatado').checked = candidato[15]; 
             }
             candidatoModal.classList.add('active'); 
         }

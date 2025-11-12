@@ -164,7 +164,8 @@ def adicionar_candidato(id_edital):
     data_posse = request.form.get('data_posse')
     portaria = request.form.get('portaria')
     lotacao = request.form.get('lotacao')
-    success, message = Candidato.create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao) #
+    contatado = 'contatado' in request.form
+    success, message = Candidato.create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao, contatado) #
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
@@ -191,8 +192,9 @@ def editar_candidato(id_candidato):
     data_posse = request.form.get('data_posse') 
     portaria = request.form.get('portaria')
     lotacao = request.form.get('lotacao')
+    contatado = 'contatado' in request.form
 
-    success, message = Candidato.update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao) #
+    success, message = Candidato.update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao, contatado) #
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 
@@ -318,13 +320,8 @@ def nomear_lote(id_edital):
         flash('Acesso negado.', 'error')
         return redirect(url_for('auth.login'))
 
-    data_posse = request.form.get('data_posse_lote')
-    # request.form.getlist() é usado para obter todos os valores de checkboxes com o mesmo nome
+    # Não pega mais a data de posse
     ids_candidatos_selecionados = request.form.getlist('candidato_ids')
-
-    if not data_posse:
-        flash('A data de posse é obrigatória.', 'error')
-        return redirect(url_for('edital.painel'))
 
     if not ids_candidatos_selecionados:
         flash('Nenhum candidato foi selecionado.', 'error')
@@ -332,11 +329,13 @@ def nomear_lote(id_edital):
 
     nomeados_com_sucesso = 0
     for id_candidato in ids_candidatos_selecionados:
-        if Candidato.nomear(id_candidato, data_posse):
+        # Chama o método 'nomear' sem a data
+        if Candidato.nomear(id_candidato):
             nomeados_com_sucesso += 1
     
     if nomeados_com_sucesso > 0:
-        flash(f'{nomeados_com_sucesso} candidato(s) nomeado(s) com sucesso para a data de {data_posse}!', 'success')
+        # Mensagem de flash genérica
+        flash(f'{nomeados_com_sucesso} candidato(s) nomeado(s) com sucesso!', 'success')
 
     return redirect(url_for('edital.painel'))
 
@@ -346,8 +345,14 @@ def empossar_lote(id_edital):
         flash('Acesso negado.', 'error')
         return redirect(url_for('auth.login'))
 
-    # Usamos um nome de form diferente para os IDs
     ids_candidatos_selecionados = request.form.getlist('candidato_ids_empossar') 
+    
+    # Pega a nova data de posse
+    data_posse = request.form.get('data_posse_lote_empossar')
+
+    if not data_posse:
+        flash('A data de posse é obrigatória.', 'error')
+        return redirect(url_for('edital.painel'))
 
     if not ids_candidatos_selecionados:
         flash('Nenhum candidato foi selecionado.', 'error')
@@ -355,11 +360,13 @@ def empossar_lote(id_edital):
 
     empossados_com_sucesso = 0
     for id_candidato in ids_candidatos_selecionados:
-        if Candidato.empossar(id_candidato): # Chama o novo método do model
+        # Chama o método 'empossar' com a data
+        if Candidato.empossar(id_candidato, data_posse): 
             empossados_com_sucesso += 1
     
     if empossados_com_sucesso > 0:
-        flash(f'{empossados_com_sucesso} candidato(s) marcado(s) como "Empossado" com sucesso!', 'success')
+        # Mensagem de flash com a data
+        flash(f'{empossados_com_sucesso} candidato(s) empossado(s) com sucesso para a data de {data_posse}!', 'success')
 
     return redirect(url_for('edital.painel'))
 
