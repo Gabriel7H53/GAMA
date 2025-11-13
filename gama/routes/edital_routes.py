@@ -1,8 +1,9 @@
 # gama/routes/edital_routes.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
 from gama.models.edital import Edital, Cargo
-from gama.models.configuracao import Opcao
 from gama.models.candidato import Candidato
+from gama.models.configuracao import Opcao 
+from gama.models.vaga import Vaga
 from datetime import datetime, timedelta, date
 from collections import defaultdict
 import csv
@@ -13,8 +14,6 @@ edital_bp = Blueprint('edital', __name__, template_folder='../templates')
 def check_admin():
     return 'usuario_id' in session and session.get('tipo') == 'administrador' or 'usuario'
 
-# --- FUNÇÃO PAINEL ATUALIZADA ---
-# Sua função 'painel' adaptada com a nova lógica
 @edital_bp.route('/painel')
 def painel():
     if not check_admin():
@@ -49,11 +48,12 @@ def painel():
         candidatos_simples[edital[0]] = todos_candidatos_do_edital
         candidatos_agrupados_por_cargo = defaultdict(list)
         for candidato in todos_candidatos_do_edital:
-            nome_cargo = candidato[11]
+            nome_cargo = candidato[11] 
             candidatos_agrupados_por_cargo[nome_cargo].append(candidato)
         candidatos_agrupados[edital[0]] = dict(sorted(candidatos_agrupados_por_cargo.items()))
 
     opcoes_unidade = Opcao.get_por_tipo('unidade')
+    vagas_livres = Vaga.get_all_vagas_livres()
 
     return render_template(
         'edital.html', 
@@ -61,7 +61,8 @@ def painel():
         editais=editais_com_status_vencimento,
         candidatos_por_edital_agrupado=candidatos_agrupados,
         candidatos_por_edital_simples=candidatos_simples,
-        opcoes_unidade=opcoes_unidade
+        opcoes_unidade=opcoes_unidade,
+        vagas_livres=vagas_livres 
     )
 
 @edital_bp.route('/adicionar', methods=['POST'])
@@ -80,46 +81,37 @@ def adicionar_edital():
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 
-# --- FUNÇÃO EDITAR EDITAL ATUALIZADA COM A NOVA LÓGICA ---
 @edital_bp.route('/editar/<int:id_edital>', methods=['POST'])
 def editar_edital(id_edital):
     if not check_admin():
         return redirect(url_for('auth.login'))
         
-    # 1. Coleta dos dados do formulário
     numero_edital = request.form['numero_edital']
     data_edital = request.form['data_edital']
     data_publicacao = request.form['data_publicacao']
     vencimento_edital_str = request.form['vencimento_edital']
     status_do_formulario = request.form['status']
 
-    # Converte o prazo de prorrogação para inteiro de forma segura
     try:
         prazo_prorrogacao = int(request.form.get('prazo_prorrogacao') or 0)
     except (ValueError, TypeError):
         prazo_prorrogacao = 0
 
-    # Variáveis finais que serão salvas no banco
     status_final = status_do_formulario
     vencimento_final_str = vencimento_edital_str
 
-    # 2. Aplicação da nova lógica de prorrogação
     if prazo_prorrogacao > 0:
-        # Requisito: Muda o status para "prorrogado" automaticamente
         status_final = 'prorrogado'
         
-        # Requisito: Atualiza a data de vencimento
         try:
             data_base_vencimento = datetime.strptime(vencimento_edital_str, '%Y-%m-%d')
             data_vencimento_nova = data_base_vencimento + timedelta(days=prazo_prorrogacao)
             vencimento_final_str = data_vencimento_nova.strftime('%Y-%m-%d')
             flash(f'Edital prorrogado! Novo vencimento: {vencimento_final_str}.', 'info')
         except ValueError:
-            # Caso a data no formulário seja inválida
             flash('Formato de data de vencimento inválido. A prorrogação não pôde ser calculada.', 'error')
             return redirect(url_for('edital.painel'))
 
-    # 3. Chamada ao banco de dados com os valores atualizados
     success, message = Edital.update(
         id_edital, 
         numero_edital, 
@@ -150,10 +142,9 @@ def adicionar_candidato(id_edital):
         return redirect(url_for('auth.login'))
 
     nome_cargo = request.form['nome_cargo'].strip()
-    padrao_vencimento = request.form['padrao_vencimento'] # <-- GET the new field from form
-    # Pass it to get_or_create
+    padrao_vencimento = request.form['padrao_vencimento'] 
     id_cargo = Cargo.get_or_create(id_edital, nome_cargo, padrao_vencimento)
-    # ... (rest of the function remains the same) ...
+    
     nome = request.form['nome']
     inscricao = request.form['numero_inscricao']
     nota = request.form['nota']
@@ -165,7 +156,20 @@ def adicionar_candidato(id_edital):
     portaria = request.form.get('portaria')
     lotacao = request.form.get('lotacao')
     contatado = 'contatado' in request.form
-    success, message = Candidato.create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao, contatado) #
+    
+    # ======================================================
+    # CORREÇÃO AQUI
+    # ======================================================
+    cod_vaga = request.form.get('cod_vaga')
+    if cod_vaga == "": # Se for uma string vazia (opção "-- Nenhuma --")
+        cod_vaga = None # Salva como None (NULL no banco)
+    # ======================================================
+    
+    success, message = Candidato.create(
+        id_edital, id_cargo, nome, inscricao, nota, classificacao, 
+        pcd, cotista, situacao, data_posse, 
+        portaria, lotacao, contatado, cod_vaga
+    ) 
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
@@ -178,10 +182,9 @@ def editar_candidato(id_candidato):
 
     id_edital = request.form['id_edital']
     nome_cargo = request.form['nome_cargo'].strip()
-    padrao_vencimento = request.form['padrao_vencimento'] # <-- GET the new field from form
-    # Pass it to get_or_create
+    padrao_vencimento = request.form['padrao_vencimento'] 
     id_cargo = Cargo.get_or_create(id_edital, nome_cargo, padrao_vencimento)
-    # ... (rest of the function remains the same) ...
+
     nome = request.form['nome']
     inscricao = request.form['numero_inscricao']
     nota = request.form['nota']
@@ -193,8 +196,20 @@ def editar_candidato(id_candidato):
     portaria = request.form.get('portaria')
     lotacao = request.form.get('lotacao')
     contatado = 'contatado' in request.form
+    
+    # ======================================================
+    # CORREÇÃO AQUI
+    # ======================================================
+    cod_vaga = request.form.get('cod_vaga')
+    if cod_vaga == "": # Se for uma string vazia (opção "-- Nenhuma --")
+        cod_vaga = None # Salva como None (NULL no banco)
+    # ======================================================
 
-    success, message = Candidato.update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao, contatado) #
+    success, message = Candidato.update(
+        id_candidato, id_cargo, nome, inscricao, nota, classificacao, 
+        pcd, cotista, situacao, data_posse, 
+        portaria, lotacao, contatado, cod_vaga
+    ) 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 
@@ -213,44 +228,31 @@ def adicionar_lote(id_edital):
     if not check_admin():
         flash('Acesso negado.', 'error')
         return redirect(url_for('edital.painel'))
-
     if 'planilha' not in request.files:
         flash('Nenhum arquivo enviado.', 'error')
         return redirect(url_for('edital.painel'))
-
     arquivo = request.files['planilha']
-
     if arquivo.filename == '':
         flash('Nenhum arquivo selecionado.', 'error')
         return redirect(url_for('edital.painel'))
-
     if not arquivo.filename.lower().endswith('.csv'):
         flash('Formato de arquivo inválido. Por favor, envie um arquivo .csv', 'error')
         return redirect(url_for('edital.painel'))
-
     try:
         stream = io.StringIO(arquivo.stream.read().decode("utf-8"), newline=None)
         reader = csv.reader(stream)
-        next(reader, None) # Pula o cabeçalho
-
+        next(reader, None) 
         candidatos_lidos = []
         erros_leitura = []
-
         for i, linha in enumerate(reader):
-            # Expect 5 columns now
-            if len(linha) < 5: # <-- UPDATED Check
-                erros_leitura.append(f"Linha {i+2}: formato inválido (esperadas 5 colunas).") # <-- UPDATED Message
+            if len(linha) < 5: 
+                erros_leitura.append(f"Linha {i+2}: formato inválido (esperadas 5 colunas).") 
                 continue
-
-            # Unpack 5 values
-            nome, inscricao, nota_str, nome_cargo, padrao_vencimento = linha # <-- UPDATED Unpacking
-            padrao_vencimento = padrao_vencimento.strip().upper() # Ensure it's uppercase D or E
-
-            # Validate padrao_vencimento
+            nome, inscricao, nota_str, nome_cargo, padrao_vencimento = linha 
+            padrao_vencimento = padrao_vencimento.strip().upper() 
             if padrao_vencimento not in ('D', 'E'):
                 erros_leitura.append(f"Linha {i+2}: Padrão de Vencimento '{padrao_vencimento}' inválido (deve ser 'D' ou 'E').")
                 continue
-
             try:
                 nota = float(nota_str.replace(',', '.'))
                 candidatos_lidos.append({
@@ -258,35 +260,24 @@ def adicionar_lote(id_edital):
                     'inscricao': inscricao.strip(),
                     'nota': nota,
                     'nome_cargo': nome_cargo.strip(),
-                    'padrao_vencimento': padrao_vencimento # <-- STORE the value
+                    'padrao_vencimento': padrao_vencimento 
                 })
             except ValueError:
-                erros_leitura.append(f"Linha {i+2}: a nota '{nota_str}' não é um número válido.") #
-
+                erros_leitura.append(f"Linha {i+2}: a nota '{nota_str}' não é um número válido.") 
         if erros_leitura:
-            flash('Erros encontrados no arquivo: ' + " | ".join(erros_leitura), 'error') #
+            flash('Erros encontrados no arquivo: ' + " | ".join(erros_leitura), 'error') 
             return redirect(url_for('edital.painel'))
-
-        # Grouping remains the same
         candidatos_por_cargo = defaultdict(list)
         for candidato in candidatos_lidos:
-            candidatos_por_cargo[candidato['nome_cargo']].append(candidato) #
-
+            candidatos_por_cargo[candidato['nome_cargo']].append(candidato) 
         candidatos_adicionados = 0
         erros_insercao = []
-
         for nome_cargo, lista_candidatos in candidatos_por_cargo.items():
             try:
-                # Assume the first candidate in the list for this cargo has the correct pattern
-                # (Alternatively, you could add logic to ensure all candidates for the same cargo
-                # in the CSV have the same pattern, or handle conflicts)
                 padrao_vencimento_cargo = lista_candidatos[0]['padrao_vencimento']
-
-                # Pass the pattern when getting/creating the cargo ID
                 id_cargo = Cargo.get_or_create(id_edital, nome_cargo, padrao_vencimento_cargo)
-                ultima_classificacao = Candidato.get_max_classificacao(id_edital, id_cargo) #
+                ultima_classificacao = Candidato.get_max_classificacao(id_edital, id_cargo) 
                 classificacao_counter = ultima_classificacao + 1
-
                 for candidato in lista_candidatos:
                     Candidato.create(
                         id_edital=id_edital,
@@ -296,22 +287,17 @@ def adicionar_lote(id_edital):
                         nota=candidato['nota'],
                         classificacao=classificacao_counter,
                         pcd=False, cotista=False, situacao='homologado', data_posse=None
-                    ) #
+                    ) 
                     candidatos_adicionados += 1
                     classificacao_counter += 1
-            
             except Exception as e:
                 erros_insercao.append(f"Cargo '{nome_cargo}': {e}")
-
-        # Mensagens de feedback
         if candidatos_adicionados > 0:
             flash(f'{candidatos_adicionados} candidatos adicionados com sucesso!', 'success')
         if erros_insercao:
             flash(f'Ocorreram erros durante a inserção: ' + " | ".join(erros_insercao), 'error')
-
     except Exception as e:
         flash(f'Ocorreu um erro fatal ao processar o arquivo: {e}', 'error')
-
     return redirect(url_for('edital.painel'))
 
 @edital_bp.route('/<int:id_edital>/candidato/nomear_lote', methods=['POST'])
@@ -319,24 +305,16 @@ def nomear_lote(id_edital):
     if not check_admin():
         flash('Acesso negado.', 'error')
         return redirect(url_for('auth.login'))
-
-    # Não pega mais a data de posse
     ids_candidatos_selecionados = request.form.getlist('candidato_ids')
-
     if not ids_candidatos_selecionados:
         flash('Nenhum candidato foi selecionado.', 'error')
         return redirect(url_for('edital.painel'))
-
     nomeados_com_sucesso = 0
     for id_candidato in ids_candidatos_selecionados:
-        # Chama o método 'nomear' sem a data
         if Candidato.nomear(id_candidato):
             nomeados_com_sucesso += 1
-    
     if nomeados_com_sucesso > 0:
-        # Mensagem de flash genérica
         flash(f'{nomeados_com_sucesso} candidato(s) nomeado(s) com sucesso!', 'success')
-
     return redirect(url_for('edital.painel'))
 
 @edital_bp.route('/<int:id_edital>/candidato/empossar_lote', methods=['POST'])
@@ -344,38 +322,18 @@ def empossar_lote(id_edital):
     if not check_admin():
         flash('Acesso negado.', 'error')
         return redirect(url_for('auth.login'))
-
     ids_candidatos_selecionados = request.form.getlist('candidato_ids_empossar') 
-    
-    # Pega a nova data de posse
     data_posse = request.form.get('data_posse_lote_empossar')
-
     if not data_posse:
         flash('A data de posse é obrigatória.', 'error')
         return redirect(url_for('edital.painel'))
-
     if not ids_candidatos_selecionados:
         flash('Nenhum candidato foi selecionado.', 'error')
         return redirect(url_for('edital.painel'))
-
     empossados_com_sucesso = 0
     for id_candidato in ids_candidatos_selecionados:
-        # Chama o método 'empossar' com a data
         if Candidato.empossar(id_candidato, data_posse): 
             empossados_com_sucesso += 1
-    
     if empossados_com_sucesso > 0:
-        # Mensagem de flash com a data
         flash(f'{empossados_com_sucesso} candidato(s) empossado(s) com sucesso para a data de {data_posse}!', 'success')
-
     return redirect(url_for('edital.painel'))
-
-@edital_bp.route('/api/candidatos/search')
-def search_candidatos():
-    # Pega o texto digitado que veio como parâmetro na URL (ex: /api/candidatos/search?query=Joao)
-    query = request.args.get('query', '')
-    if len(query) < 2: # Só busca se tiver pelo menos 2 caracteres
-        return jsonify([])
-
-    nomes = Candidato.search_by_name(query)
-    return jsonify(nomes)

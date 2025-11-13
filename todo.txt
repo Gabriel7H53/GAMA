@@ -9,41 +9,60 @@ Entrada em Exercicio(OK)
 Mudança de Gestor para Reitor (ok)
 Data de Emissão/Nomeação : 2 pra um e deixar apenas Data de Posse que deve ser cadastrado após concluir pericia (Ok)
 
+CONTROLE DE DOCUMENTOS
+    EDITAL 
+        CANDIDATOS (APENAS NOMEADOS)
+            Nome, Contatado (Sim ou Não), Entrega de Documentos (Agendar (Aparece tela para selecionar data e hora), Agendado, Entregue), Perícia (Agendar (Aparece tela para selecionar data e hora), Agendado, Concluida)
+        AGENDAMENTOS
+            ENTREGAS DE DOCUMENTOS
+                Data, Hora, Candidato, Agendado Por, Status (agendado, concluido), Editar, Excluir, Concluir (as concluidas devem ir pro final)
+            PERÍCIA MÉDICA
+                Data, Hora, Candidato, Agendado Por, Status (agendado, concluido), Editar, Excluir, Concluir(as concluidas devem ir pro final)
+
+adicionar no editar candidado (portaria, lotação (lista)) (OK)
+mudar o nomear em lote para -> empossar varias pessoas coletivamente na mesma data -> empossar em lote (OK)
+mudar tela de agendamento para ser uma tela de controle (OK)
+
+
 
 Mudança de Tela Que Fica fechando pra deixar aberta
 Lock/Cargo e Padrão de Vencimento
 
-
-
-
-
-quando finalizar a pericia quais dados podemos cadastrar? codigo de vaga? lotação? ou cadastrar lotação somente após.
-
-modulo de portaria? cadastrar portaria por edital 
-
-
-
-adicionar no editar candidado (portaria, codigo de vaga, lotação (lista),  )
-
-mudar o nomear em lote para -> empossar varias pessoas coletivamente na mesma data -> empossar em lote
-
-adicionar lógica para puxar a ultima portaria cadastrada para a proxima nomeação
-
-mudar tela de agendamento para ser uma tela de controle (contatado , final de Fila, sm interesse - tornado sem efeito)
-
-se possivel encontrar alguma maneira de avisar que o candidato esta com dados incompletos por exemplo sem lotação, portaria, codigo de vaga
-
-
-
+Adicionar toda a lógica referente ao codigo de vaga e controle de vaga 
 
 adicionar emissão coletiva de termo de posse ja emitindo o termo de apresentação ( travar se tiver algum dado faltando, e exibir oq esta faltando)
-
+se possivel encontrar alguma maneira de avisar que o candidato esta com dados incompletos por exemplo sem lotação, portaria, codigo de vaga 
+adicionar lógica para puxar a ultima portaria cadastrada para a proxima nomeação
 
 Termo de Posse Coletivo
-
-
 
 
 Adicionar tipo do Edital - Técnico/Docente (String)
 Termo Posse Professor
 Adicionar Situação - Final de Fila/Empossado (Complexo)
+
+
+
+Incrementar um novo modulo no sistema para gestão de código das vagas, esses codigos são das vagas que os candidatos podem ocupar porem na onde eu trabalho existem mais de 1000 codigos de vagas
+de concursos anteriores que não vão estar no sistema mas precisam ocupar a vaga e eu vou subir apenas o nome dessas pessoas no sistema para ficar registrado como ocupantes das vagas ou seja se uma vaga
+estiver com o nome preenchido é porque ela esta ocupada seja pelo nome de um dos candidatos de editais do sistema ou um nome preenchido manualmente, então é importante saber que 
+um candidato pode ou não estar atrelada a um codigo de vaga e um codigo de vaga pode estar ocupado ou não por um candidato ou melhor pelo nome dele, os cargos vão ser entidades com os seguintes atribtuos: 
+Cod Cargo | Nome Cargo | Situação (Ativo ou Inativo) | Nível (D ou E) | Total (x) | Ocupadas (x) | Livres (x) | Reservadas (x), e os cargos vão ter varios codigos de vagas dentro do cargo com os atributos:
+Cod. de Vaga | Situação (Ocupada, Livre) | Ocupante Atual | Area (opcional) | Observações, essa parte de area alguns cargos tem e outros não, quero que esse campo só apareça para os codigos que tem area. 
+o modo que irei cadastrar os cargos e codigos no sistema podera ser manualmente ou então por lote puxando os dados de uma planilha xlsx porque na primeira vez vou subir muitos cargos de uma vez:
+as colunas da planilha são as seguintes:  CODIGO_CARGO	NOME_CARGO	SITUAÇÃO	NIVEL	CODIGO_VAGA	SITUACAO_VAGA	NOME_OCUPANTE	OBSERVACAO	AREA 
+um exemplo de como os dados vao estar na planilha: 701015	CONTADOR	ATIVO	E	0253143	OCUPADA	MARCIA TOMOKO SOGAME CARRIJO		
+701015	CONTADOR	ATIVO	E	0290666	OCUPADA	ANDERSON LUIS MOTA SAMPAIO		
+701200	ASSISTENTE EM ADMINISTRAÇÃO	ATIVO	D	0015928	OCUPADA	RODRIGO CONCEICAO SOUZA	Vacância de Michelly Viscardi	
+701200	ASSISTENTE EM ADMINISTRAÇÃO	ATIVO	D	0202580	OCUPADA	ANA BARBOSA DE SOUZA	Vacancia de TALLIEL RIBEIRO TEZELLI DOU 198 de 18/10/22, sec. 2, p. 36.	
+701200	ASSISTENTE EM ADMINISTRAÇÃO	ATIVO	D	0805940	DESOCUPADA		Vacância de DIELE APARECIDA MENDES DA SILVA – SOC	
+701031	ENGENHEIRO/ÁREA:	ATIVO	E	0288401	OCUPADA	GABRIEL DE OLIVEIRA ALVES	Exoneração SILVIO PEREIRA COSTA 21/10/2024	Eletricista
+701031	ENGENHEIRO/ÁREA:	ATIVO	E	0289799	OCUPADA	JULIANO LOVATTO		Civil
+701031	ENGENHEIRO/ÁREA:	ATIVO	E	0341009	OCUPADA	ANDERSON ROSS BIAZETO		Eletricista
+
+
+Gestão dos Códigos de Vagas
+   Cod Cargo | Nome Cargo | Situação (Ativo ou Inativo) | Nível (D ou E) | Total (x) | Ocupadas (x) | Livres (x) | Reservadas (x)
+        Cod. de Vaga | Situação (Ocupada, Livre) | Ocupante Atual | Area (opcional) | Observações 
+    701001 | Administrador | Ativo | E | Total (54) | Ocupadas (54) | Livres (0) | Reservadas (0) | Icone Editar | Icone Excluir
+        0974949 | OCUPADA |  GLEYCE HELLEN DE ALMEIDA DE SOUZA | TROCA DE VAGA MEC, PORTARIA No 379, DE 25 DE ABRIL DE 2018, DOU N.80 DE 26.04.2018 | Icone Editar | Icone Remover

@@ -18,9 +18,9 @@
                 <div class="dashboard-user">
                     <span>{{ nome }}</span>
                     {% if session.get('tipo') == 'administrador' %}
-                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -255,7 +255,9 @@
         if (candidato.lotacao) {
             document.getElementById('lotacao').value = candidato.lotacao;
         }
-
+        if (candidato.cod_vaga) {
+            document.getElementById('codigo_vaga').value = candidato.cod_vaga;
+        }
         // ---- INÍCIO DA NOVA ALTERAÇÃO ----
         // Preenche os campos 'reitor' e 'local' com os valores padrão
         // passados pela rota (ou com '' se não houver padrão)

@@ -20,7 +20,7 @@
                     {% if session.get('tipo') == 'administrador' %}
                         <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -262,7 +262,22 @@
                             </select>
                         </div>
                     </div>
-                </div>
+                    
+                    <div class="form-group">
+                        <label for="cod_vaga" class="form-label">Código de Vaga (Opcional)</label>
+                        <select id="cod_vaga" name="cod_vaga" class="form-input">
+                            <option value="">-- Nenhuma Vaga Vinculada --</option>
+                            <optgroup label="Vagas Livres">
+                            {% for vaga in vagas_livres %}
+                                <option value="{{ vaga.cod_vaga }}">
+                                    {{ vaga.cod_vaga }} - {{ vaga.nome_cargo }}
+                                    {% if vaga.area %}({{ vaga.area }}){% endif %}
+                                </option>
+                            {% endfor %}
+                            </optgroup>
+                            </select>
+                    </div>
+                    </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeCandidatoModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar</button>
@@ -318,6 +333,7 @@
             </form>
         </div>
     </div>
+
     <div id="empossarLoteModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -346,11 +362,12 @@
             </form>
         </div>
     </div>
+
+
     <script>
         // Transforma os dados Python em JSON seguro para JavaScript
         const todosOsCandidatosSimples = {{ candidatos_por_edital_simples|tojson }};
 
-        // Função genérica para abrir/fechar seções expansíveis
         function toggleContent(elementId, headerElement) {
             const body = document.getElementById(elementId);
             if (body) {
@@ -391,8 +408,19 @@
         // --- Modal Candidato ---
         const candidatoModal = document.getElementById('candidatoModal');
         const candidatoForm = document.getElementById('candidatoForm');
+        // ======================================================
+        // ALTERAÇÃO AQUI: JavaScript do Modal Candidato
+        // ======================================================
         function openCandidatoModal(buttonElement, id_edital_for_new = null) {
             candidatoForm.reset(); 
+            
+            // Limpa opções de vaga dinâmicas
+            const vagaSelect = document.getElementById('cod_vaga');
+            const oldOption = vagaSelect.querySelector('option[data-ocupada="true"]');
+            if (oldOption) {
+                oldOption.remove();
+            }
+
             if (!buttonElement) { 
                 document.getElementById('candidatoModalTitle').innerText = 'Adicionar Candidato';
                 document.getElementById('id_edital_hidden_candidato').value = id_edital_for_new; 
@@ -417,10 +445,39 @@
                 document.getElementById('padrao_vencimento').value = candidato[12] || '';
                 document.getElementById('portaria').value = candidato[13] || ''; 
                 document.getElementById('lotacao').value = candidato[14] || '';
-                document.getElementById('contatado').checked = candidato[15]; 
+                document.getElementById('contatado').checked = candidato[15];
+                
+                // Novo: Preenche o Código de Vaga (índice 16)
+                const cod_vaga_candidato = candidato[16];
+                if (cod_vaga_candidato) {
+                    // Verifica se a vaga já está na lista de "livres"
+                    let vagaNaLista = false;
+                    for (let option of vagaSelect.options) {
+                        if (option.value === cod_vaga_candidato) {
+                            vagaNaLista = true;
+                            break;
+                        }
+                    }
+                    // Se não estiver (porque está ocupada por este candidato), adiciona
+                    if (!vagaNaLista) {
+                        const option = document.createElement('option');
+                        option.value = cod_vaga_candidato;
+                        option.text = `${cod_vaga_candidato} (Vaga Atual)`;
+                        option.dataset.ocupada = "true"; // Marca para remoção
+                        // Adiciona no topo, logo após a opção vazia
+                        vagaSelect.add(option, vagaSelect.options[1]);
+                    }
+                    vagaSelect.value = cod_vaga_candidato;
+                } else {
+                    vagaSelect.value = ""; // Nenhuma vaga
+                }
             }
             candidatoModal.classList.add('active'); 
         }
+        // ======================================================
+        // FIM DA ALTERAÇÃO
+        // ======================================================
+        
         function closeCandidatoModal() {
             candidatoModal.classList.remove('active'); 
         }
@@ -492,7 +549,6 @@
             checkboxSelecionarTodos.checked = false; 
         }
 
-        // --- Event Listener para "Selecionar Todos" (Nomear) ---
         checkboxSelecionarTodos.addEventListener('change', function() {
             const todosOsCheckboxes = listaCandidatosDiv.querySelectorAll('input[type="checkbox"]');
             todosOsCheckboxes.forEach(checkbox => {
@@ -557,7 +613,6 @@
             checkboxSelecionarTodosEmpossar.checked = false;
         }
 
-        // --- Event Listener para "Selecionar Todos" (Empossar) ---
         checkboxSelecionarTodosEmpossar.addEventListener('change', function() {
             const todosOsCheckboxes = listaCandidatosEmpossarDiv.querySelectorAll('input[type="checkbox"]');
             todosOsCheckboxes.forEach(checkbox => {

@@ -17,12 +17,8 @@
                 <h1 class="dashboard-title">GAMA</h1>
                 <div class="dashboard-user">
                     <span>{{ session.get('nome') }}</span>
-                    {% if session.get('tipo') == 'administrador' %}
                         <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-primary">Voltar ao Painel</a>
-                    {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-primary">Voltar ao Painel</a>
-                    {% endif %}
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
             </nav>
         </header>

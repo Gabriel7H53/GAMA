@@ -89,9 +89,6 @@ def editar_usuario():
     flash(message, 'success' if success else 'error')
     return redirect(url_for('usuarios.config_usuarios'))
 
-# ==================================================================
-# ROTA 'AGENDAMENTOS' TOTALMENTE REESCRITA (AGORA CONTROLE DE DOCUMENTOS)
-# ==================================================================
 @usuario_bp.route('/agendamentos')
 def agendamentos():
     if 'usuario_id' not in session:
@@ -176,9 +173,6 @@ def agendamentos():
         editais=todos_editais,
         dados_pagina=dados_pagina # Passa a nova estrutura de dados
     )
-# ==================================================================
-# FIM DA REESCRITA DA ROTA
-# ==================================================================
 
 
 @usuario_bp.route('/agendamento/criar', methods=['POST'])
@@ -235,17 +229,6 @@ def concluir_pericia(id_agendamento):
     
     return redirect(url_for('usuarios.agendamentos'))
 
-@usuario_bp.route('/api/candidatos/search')
-def search_candidatos_api():
-    if 'usuario_id' not in session:
-        return jsonify({"error": "Acesso não autorizado"}), 401
-
-    query = request.args.get('query', '')
-    if len(query) < 2:
-        return jsonify([])
-
-    nomes = Candidato.search_by_name(query)
-    return jsonify(nomes)
 
 @usuario_bp.route('/agendamento/editar/<int:id_agendamento>', methods=['POST'])
 def editar_agendamento(id_agendamento):
@@ -277,9 +260,6 @@ def remover_agendamento(id_agendamento):
     
     return redirect(url_for('usuarios.agendamentos'))
 
-# ======================================================
-# NOVA ROTA ADICIONADA
-# ======================================================
 @usuario_bp.route('/candidato/toggle_contatado', methods=['POST'])
 def toggle_contatado():
     if 'usuario_id' not in session:
@@ -302,6 +282,3 @@ def toggle_contatado():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
-# ======================================================
-# FIM DA NOVA ROTA
-# ======================================================

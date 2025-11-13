@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Vagas - GAMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vagas.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
+    <style>
+
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header class="dashboard-header">
+            <nav class="dashboard-nav container">
+                <h1 class="dashboard-title">GAMA</h1>
+                <div class="dashboard-user">
+                    <span>{{ session.get('nome') }}</span>
+                    {% if session.get('tipo') == 'administrador' %}
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-primary">Voltar ao Painel</a>
+                    {% else %}
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-primary">Voltar ao Painel</a>
+                    {% endif %}
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+                </div>
+            </nav>
+        </header>
+
+        <main class="dashboard-content container">
+            <div class="section-header">
+                <h2 class="page-title">Gestão de Cargos e Vagas</h2>
+                <div>
+                    <button class="btn btn-primary" onclick="openLoteModal()">
+                        <i class="fas fa-file-upload"></i> Importar Lote .xlsx
+                    </button>
+                    <button class="btn btn-primary" onclick="openCargoModal(null)">
+                        <i class="fas fa-plus"></i> Novo Cargo
+                    </button>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% for cargo in cargos %}
+            <div class="cargo-card" id="cargo-{{ cargo.id }}">
+                <div class="cargo-header" onclick="toggleContent('body-cargo-{{ cargo.id }}', this)">
+                    
+                    <div class="cargo-info">
+                        <strong>{{ cargo.nome_cargo }}</strong>
+                        <span class="badge">{{ cargo.nivel }}</span>
+                        {% if cargo.situacao == 'Ativo' %}
+                            <span class="badge badge-success">Ativo</span>
+                        {% else %}
+                            <span class="badge badge-danger">Inativo</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="count-group">
+                        <span class="count-tag"><strong>Total:</strong> {{ cargo.total_vagas }}</span>
+                        <span class="count-tag"><strong>Ocupadas:</strong> {{ cargo.ocupadas }}</span>
+                        <span class="count-tag"><strong>Livres:</strong> {{ cargo.livres }}</span>
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="event.stopPropagation(); openVagaModal({{ cargo.id }}, '{{ cargo.nome_cargo }}', null);">
+                            Adicionar Vaga
+                        </button>
+                        <button class="icon-button" title="Editar Cargo" data-cargo='{{ cargo|tojson }}' onclick="event.stopPropagation(); openCargoModal(this)"><i class="fas fa-edit"></i></button>
+                        <form action="{{ url_for('vaga.remover_cargo', id_cargo=cargo.id) }}" method="POST" onsubmit="return confirm('Atenção! Isso removerá o cargo E TODAS as suas vagas. Deseja continuar?');" style="display: inline;">
+                            <button type="submit" class="icon-button" title="Remover Cargo"><i class="fas fa-trash-alt"></i></button>
+                        </form>
+                    </div>
+                </div>
+                <div class="cargo-body" id="body-cargo-{{ cargo.id }}">
+                    {% set lista_vagas = vagas_por_cargo.get(cargo.id, []) %}
+                    {% if lista_vagas %}
+                        <table class="vaga-table">
+                            <thead>
+                                <tr>
+                                    <th>Cód. Vaga</th>
+                                    <th>Situação</th>
+                                    <th>Ocupante Atual</th>
+                                    <th>Área</th>
+                                    <th>Observações</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for vaga in lista_vagas %}
+                                <tr>
+                                    <td>{{ vaga.cod_vaga }}</td>
+                                    <td>
+                                        {% if vaga.situacao == 'Ocupada' %}
+                                            <span class="badge badge-ocupada">Ocupada</span>
+                                        {% else %}
+                                            <span class="badge badge-livre">Livre</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ vaga.ocupante_atual or '---' }}</td>
+                                    <td>{{ vaga.area or '---' }}</td>
+                                    <td>{{ vaga.observacoes or '---' }}</td>
+                                    <td class="actions">
+                                        <button class="icon-button" title="Editar Vaga" data-vaga='{{ vaga|tojson }}' onclick="openVagaModal({{ cargo.id }}, '{{ cargo.nome_cargo }}', this)"><i class="fas fa-edit"></i></button>
+                                        <form action="{{ url_for('vaga.remover_vaga', id_vaga=vaga.id) }}" method="POST" onsubmit="return confirm('Deseja remover esta vaga?');" style="display:inline;">
+                                            <button type="submit" class="icon-button" title="Remover Vaga"><i class="fas fa-trash-alt"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhuma vaga cadastrada para este cargo.</p></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+                <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum cargo cadastrado. Comece adicionando um cargo ou importando uma planilha.</p></div>
+            {% endfor %}
+        </main>
+    </div>
+
+    <div id="cargoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="cargoModalTitle"></h3>
+                <button class="icon-button" onclick="closeCargoModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="cargoForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id_cargo" id="id_cargo">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cod_cargo">Código do Cargo</label>
+                            <input type="text" id="cod_cargo" name="cod_cargo" required>
+                        </div>
+                        <div class="form-group" style="flex-grow: 2;">
+                            <label for="nome_cargo">Nome do Cargo</label>
+                            <input type="text" id="nome_cargo" name="nome_cargo" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nivel">Nível</label>
+                            <select id="nivel" name="nivel" required>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="situacao">Situação</label>
+                            <select id="situacao" name="situacao" required>
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="closeCargoModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Cargo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="vagaModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="vagaModalTitle"></h3>
+                <button class="icon-button" onclick="closeVagaModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="vagaForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id_vaga" id="id_vaga">
+                    <input type="hidden" name="cargo_gestao_id" id="cargo_gestao_id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cod_vaga">Código da Vaga</label>
+                            <input type="text" id="cod_vaga" name="cod_vaga" required>
+                        </div>
+                        <div class="form-group" id="area_field_group" style="display: none;">
+                            <label for="area">Área</label>
+                            <input type="text" id="area" name="area">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacoes">Observações</label>
+                        <textarea id="observacoes" name="observacoes" rows="2"></textarea>
+                    </div>
+                    
+                    <hr style="margin: 1.5rem 0;">
+                    <p style="font-weight: 500; margin-bottom: 1rem;">Ocupação da Vaga</p>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ocupante_candidato_id">Vincular Candidato do Sistema (Opcional)</label>
+                            <select id="ocupante_candidato_id" name="ocupante_candidato_id">
+                                <option value="">-- Vaga Livre / Informar Manualmente --</option>
+                                {% for c in candidatos_sistema %}
+                                    <option value="{{ c.id_candidato }}">{{ c.nome }} ({{ c.numero_edital }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ocupante_manual">Ocupante Manual (se não vinculado)</label>
+                            <input type="text" id="ocupante_manual" name="ocupante_manual">
+                        </div>
+                    </div>
+                    <small class="form-help">Se um candidato for selecionado, o 'Ocupante Manual' será ignorado. Se ambos estiverem vazios, a vaga será marcada como 'Livre'.</small>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="closeVagaModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Vaga</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="loteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Importar Lote de Vagas</h3>
+                <button class="icon-button" onclick="closeLoteModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form action="{{ url_for('vaga.upload_lote_vagas') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <p>Envie uma planilha <strong>.xlsx</strong> com os dados para a emissão. A planilha deve conter as seguintes colunas no cabeçalho:</p>
+                    <br>
+                    <p><code>CODIGO_CARGO | NOME_CARGO | SITUACAO | NIVEL | CODIGO_VAGA | SITUACAO_VAGA | NOME_OCUPANTE | OBSERVACAO | AREA</code></p>
+                    <br>
+                    <div class="form-group">
+                        <label for="planilha">Arquivo da Planilha (.xlsx):</label>
+                        <input type="file" id="planilha" name="planilha" accept=".xlsx" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="closeLoteModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Enviar Planilha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    function toggleContent(elementId, headerElement) {
+        const body = document.getElementById(elementId);
+        if (body) {
+            body.classList.toggle('active');
+            const header = body.previousElementSibling; 
+            if (header) {
+                header.classList.toggle('active');
+            }
+        }
+    }
+
+    // --- Modal de Cargo ---
+    const cargoModal = document.getElementById('cargoModal');
+    const cargoForm = document.getElementById('cargoForm');
+    function openCargoModal(buttonElement) {
+        cargoForm.reset();
+        if (buttonElement) { // Modo Editar
+            const cargo = JSON.parse(buttonElement.getAttribute('data-cargo'));
+            document.getElementById('cargoModalTitle').innerText = 'Editar Cargo';
+            cargoForm.action = `/vagas/cargo/editar/${cargo.id}`;
+            document.getElementById('id_cargo').value = cargo.id;
+            document.getElementById('cod_cargo').value = cargo.cod_cargo;
+            document.getElementById('nome_cargo').value = cargo.nome_cargo;
+            document.getElementById('situacao').value = cargo.situacao;
+            document.getElementById('nivel').value = cargo.nivel;
+        } else { // Modo Adicionar
+            document.getElementById('cargoModalTitle').innerText = 'Adicionar Novo Cargo';
+            cargoForm.action = "{{ url_for('vaga.adicionar_cargo') }}";
+            document.getElementById('id_cargo').value = '';
+        }
+        cargoModal.classList.add('active');
+    }
+    function closeCargoModal() {
+        cargoModal.classList.remove('active');
+    }
+
+    // --- Modal de Vaga ---
+    const vagaModal = document.getElementById('vagaModal');
+    const vagaForm = document.getElementById('vagaForm');
+    const selectCandidatos = document.getElementById('ocupante_candidato_id');
+    const inputManual = document.getElementById('ocupante_manual');
+
+    function openVagaModal(cargo_id, cargo_nome, buttonElement) {
+        vagaForm.reset();
+        document.getElementById('cargo_gestao_id').value = cargo_id;
+        
+        const areaFieldGroup = document.getElementById('area_field_group');
+        if (cargo_nome.includes('/ÁREA')) {
+            areaFieldGroup.style.display = 'block';
+        } else {
+            areaFieldGroup.style.display = 'none';
+        }
+
+        if (buttonElement) { // Modo Editar
+            const vaga = JSON.parse(buttonElement.getAttribute('data-vaga'));
+            document.getElementById('vagaModalTitle').innerText = 'Editar Vaga';
+            vagaForm.action = `/vagas/vaga/editar/${vaga.id}`;
+            document.getElementById('id_vaga').value = vaga.id;
+            document.getElementById('cod_vaga').value = vaga.cod_vaga;
+            document.getElementById('area').value = vaga.area || '';
+            document.getElementById('observacoes').value = vaga.observacoes || '';
+            
+            let candidatoEncontrado = false;
+            if (vaga.ocupante_atual) {
+                for (let option of selectCandidatos.options) {
+                    if (option.text.includes(vaga.ocupante_atual)) {
+                        option.selected = true;
+                        candidatoEncontrado = true;
+                        break;
+                    }
+                }
+                if (!candidatoEncontrado) {
+                    inputManual.value = vaga.ocupante_atual;
+                }
+            }
+            
+        } else { // Modo Adicionar
+            document.getElementById('vagaModalTitle').innerText = 'Adicionar Nova Vaga';
+            vagaForm.action = "{{ url_for('vaga.adicionar_vaga') }}";
+            document.getElementById('id_vaga').value = '';
+        }
+        vagaModal.classList.add('active');
+    }
+    function closeVagaModal() {
+        vagaModal.classList.remove('active');
+    }
+
+    // --- Modal de Lote ---
+    const loteModal = document.getElementById('loteModal');
+    function openLoteModal() {
+        document.querySelector('#loteModal form').reset();
+        loteModal.classList.add('active');
+    }
+    function closeLoteModal() {
+        loteModal.classList.remove('active');
+    }
+
+    // Fechar modais
+    window.onclick = function(event) {
+        if (event.target == cargoModal) closeCargoModal();
+        if (event.target == vagaModal) closeVagaModal();
+        if (event.target == loteModal) closeLoteModal();
+    }
+
+    // Auto-fechar Alertas
+    document.addEventListener('DOMContentLoaded', () => {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            setTimeout(function() {
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.style.display = 'none';
+                }, 500);
+            }, 5000);
+        });
+    });
+</script>
+</body>
+</html>

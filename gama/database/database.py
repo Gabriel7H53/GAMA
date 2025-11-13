@@ -65,6 +65,7 @@ def criar_tabelas():
         portaria TEXT,
         lotacao TEXT,
         contatado BOOLEAN NOT NULL DEFAULT 0,
+        cod_vaga TEXT,
         FOREIGN KEY (id_cargo) REFERENCES Cargo(id_cargo),
         FOREIGN KEY (id_edital) REFERENCES Edital(id_edital)
     );
@@ -103,16 +104,30 @@ def criar_tabelas():
         data_saida DATETIME
     );
 
-    -- NOVA TABELA PARA OPÇÕES DINÂMICAS --
     CREATE TABLE IF NOT EXISTS Opcao (
         id_opcao INTEGER PRIMARY KEY AUTOINCREMENT,
         tipo_opcao TEXT NOT NULL, -- Ex: 'reitor', 'local', 'unidade'
         valor_opcao TEXT NOT NULL UNIQUE, -- Ex: 'Marcelo Matias de Almeida'
-        
-        -- ======================================================
-        -- ALTERAÇÃO AQUI: Coluna 'is_default' adicionada
-        -- ======================================================
         is_default BOOLEAN NOT NULL DEFAULT 0
+    );
+                         
+    CREATE TABLE IF NOT EXISTS CargoGestao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cod_cargo TEXT NOT NULL UNIQUE,
+        nome_cargo TEXT NOT NULL,
+        situacao TEXT NOT NULL CHECK (situacao IN ('Ativo', 'Inativo')),
+        nivel TEXT NOT NULL CHECK (nivel IN ('D', 'E'))
+    );
+
+    CREATE TABLE IF NOT EXISTS Vaga (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cod_vaga TEXT NOT NULL UNIQUE,
+        situacao TEXT NOT NULL CHECK (situacao IN ('Ocupada', 'Livre')),
+        ocupante_atual TEXT,
+        area TEXT,
+        observacoes TEXT,
+        cargo_gestao_id INTEGER NOT NULL,
+        FOREIGN KEY (cargo_gestao_id) REFERENCES CargoGestao(id) ON DELETE CASCADE
     );
     """)
     

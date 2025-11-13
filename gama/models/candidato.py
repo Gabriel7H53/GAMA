@@ -6,20 +6,20 @@ from datetime import datetime
 class Candidato:
     
     @staticmethod
-    # ATUALIZADO: Adicionado contatado=False
-    def create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None, contatado=False):
+    # ATUALIZADO: Adicionado cod_vaga=None
+    def create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None, contatado=False, cod_vaga=None):
         conn = conectar()
         cursor = conn.cursor()
         try:
             data_posse = datetime.strptime(data_posse, '%Y-%m-%d').date() if data_posse else None
             pcd_bool = 1 if pcd else 0
             cotista_bool = 1 if cotista else 0
-            contatado_bool = 1 if contatado else 0 # Converte o booleano
+            contatado_bool = 1 if contatado else 0 
             
             cursor.execute("""
-                INSERT INTO Candidato (id_edital, id_cargo, nome, numero_inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao, contatado)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse, portaria, lotacao, contatado_bool))
+                INSERT INTO Candidato (id_edital, id_cargo, nome, numero_inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria, lotacao, contatado, cod_vaga)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse, portaria, lotacao, contatado_bool, cod_vaga))
             conn.commit()
             return True, "Candidato adicionado com sucesso."
         except sqlite3.IntegrityError:
@@ -35,7 +35,7 @@ class Candidato:
         conn = conectar()
         cursor = conn.cursor()
         try:
-            # ATUALIZADO: Query modificada para adicionar 'cand.contatado' no final (índice 15)
+            # ATUALIZADO: Query modificada para adicionar 'cand.cod_vaga' no final (índice 16)
             query = """
                 SELECT 
                     cand.id_candidato, cand.nome, cand.numero_inscricao, cand.nota, cand.id_cargo, 
@@ -43,7 +43,8 @@ class Candidato:
                     cand.id_edital, 
                     carg.nome_cargo, carg.padrao_vencimento,
                     cand.portaria, cand.lotacao,
-                    cand.contatado
+                    cand.contatado,
+                    cand.cod_vaga
                 FROM Candidato cand
                 JOIN Cargo carg ON cand.id_cargo = carg.id_cargo
                 WHERE cand.id_edital = ? 
@@ -55,22 +56,22 @@ class Candidato:
             conn.close()
     
     @staticmethod
-    # ATUALIZADO: Adicionado contatado
-    def update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None, contatado=False):
+    # ATUALIZADO: Adicionado cod_vaga
+    def update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None, contatado=False, cod_vaga=None):
         conn = conectar()
         cursor = conn.cursor()
         try:
             data_posse = datetime.strptime(data_posse, '%Y-%m-%d').date() if data_posse else None
             pcd_bool = 1 if pcd else 0
             cotista_bool = 1 if cotista else 0
-            contatado_bool = 1 if contatado else 0 # Converte o booleano
+            contatado_bool = 1 if contatado else 0 
             
             cursor.execute("""
                 UPDATE Candidato 
                 SET id_cargo = ?, nome = ?, numero_inscricao = ?, nota = ?, classificacao = ?, pcd = ?, cotista = ?, situacao = ?, data_posse = ?,
-                    portaria = ?, lotacao = ?, contatado = ?
+                    portaria = ?, lotacao = ?, contatado = ?, cod_vaga = ?
                 WHERE id_candidato = ?
-            """, (id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse, portaria, lotacao, contatado_bool, id_candidato))
+            """, (id_cargo, nome, inscricao, nota, classificacao, pcd_bool, cotista_bool, situacao, data_posse, portaria, lotacao, contatado_bool, cod_vaga, id_candidato))
             conn.commit()
             return True, "Candidato atualizado com sucesso."
         except sqlite3.Error as e:
@@ -95,10 +96,6 @@ class Candidato:
 
     @staticmethod
     def get_max_classificacao(id_edital, id_cargo=None):
-        """
-        Busca o maior número de classificação para um edital.
-        Se id_cargo for fornecido, a busca é filtrada por esse cargo.
-        """
         conn = conectar()
         cursor = conn.cursor()
         try:
@@ -195,7 +192,7 @@ class Candidato:
 
     @staticmethod
     def get_all_with_details():
-        """Busca TODOS os candidatos com detalhes do edital, cargo, padrao_vencimento e data_posse."""
+        """Busca TODOS os candidatos com detalhes."""
         conn = conectar()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -206,7 +203,8 @@ class Candidato:
                     c.situacao, c.nota,
                     e.id_edital, e.numero_edital,
                     cr.nome_cargo, cr.padrao_vencimento,
-                    c.portaria, c.lotacao, c.contatado
+                    c.portaria, c.lotacao, c.contatado,
+                    c.cod_vaga
                 FROM Candidato c
                 JOIN Edital e ON c.id_edital = e.id_edital
                 JOIN Cargo cr ON c.id_cargo = cr.id_cargo
@@ -221,14 +219,14 @@ class Candidato:
 
     @staticmethod
     def get_by_id(id_candidato):
-        """Busca um único candidato com detalhes do cargo, padrao_vencimento e data_posse."""
+        """Busca um único candidato com detalhes."""
         conn = conectar()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
             cursor.execute("""
                 SELECT c.nome, c.data_posse, cr.nome_cargo, cr.padrao_vencimento,
-                       c.portaria, c.lotacao, c.contatado
+                       c.portaria, c.lotacao, c.contatado, c.cod_vaga
                 FROM Candidato c
                 JOIN Cargo cr ON c.id_cargo = cr.id_cargo
                 WHERE c.id_candidato = ?

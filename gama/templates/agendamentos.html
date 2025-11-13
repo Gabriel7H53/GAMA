@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
 
     <style>
-        /* Estilos da tabela de agendamentos (do arquivo antigo) */
+        /* Estilos da tabela de agendamentos */
         .agendamentos-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
         .agendamentos-table th,
         .agendamentos-table td { padding: 12px 10px; text-align: left; vertical-align: middle; word-wrap: break-word; border-bottom: 1px solid #e5e7eb; }
@@ -37,47 +37,20 @@
         .candidatos-table td:nth-child(2) { text-align: center; }
 
         /* Botão de Contatado (liga/desliga) */
-        .btn-toggle {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.375rem 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        /* ESTILO CSS CORRETO (depende de 'true' e 'false' como strings) */
-        .btn-toggle[data-contatado="true"] {
-            background-color: #dcfce7; /* Verde claro */
-            border-color: #16a34a;
-            color: #15803d; /* Verde escuro */
-        }
-        .btn-toggle[data-contatado="false"] {
-            background-color: #f3f4f6; /* Cinza claro */
-            color: #4b5563; /* Cinza escuro */
-        }
+        .btn-toggle { display: inline-flex; align-items: center; justify-content: center; padding: 0.375rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.2s ease; }
+        .btn-toggle[data-contatado="true"] { background-color: #dcfce7; border-color: #16a34a; color: #15803d; }
+        .btn-toggle[data-contatado="false"] { background-color: #f3f4f6; color: #4b5563; }
         .btn-toggle[data-contatado="true"]:hover { background-color: #bbf7d0; }
         .btn-toggle[data-contatado="false"]:hover { background-color: #e5e7eb; }
         .btn-toggle .fas { margin-right: 6px; }
 
         /* Botão "Agendar" pequeno */
-        .btn-agendar {
-            background-color: #3b82f6; /* Azul */
-            color: white;
-            padding: 0.375rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
+        .btn-agendar { background-color: #3b82f6; color: white; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
         .btn-agendar:hover { background-color: #2563eb; }
 
         /* Status de Agendamento */
-        .status-agendado { font-weight: 500; color: #d97706; /* Ambar */ }
-        .status-entregue { font-weight: 500; color: #16a34a; /* Verde */ }
+        .status-agendado { font-weight: 500; color: #d97706; }
+        .status-entregue { font-weight: 500; color: #16a34a; }
 
         /* Outros estilos */
         .sub-section-title { margin-top: 1.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #ddd; font-size: 1.1rem; color: #333; }
@@ -98,9 +71,9 @@
                 <div class="dashboard-user">
                     <span>{{ nome }}</span>
                     {% if session.get('tipo') == 'administrador' %}
-                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -126,12 +99,7 @@
                     <div class="edital-info">
                         <strong>{{ edital[1] }}</strong>
                     </div>
-                    <div class="actions">
-                        <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="event.stopPropagation(); openAgendamentoModal({{ edital[0] }});">
-                            Novo Ag. Documentos
-                        </button>
                     </div>
-                </div>
                 
                 <div class="edital-body" id="body-edital-{{ edital[0] }}">
                     
@@ -159,16 +127,14 @@
                                                 <i class="fas fa-times"></i> Não
                                             {% endif %}
                                         </button>
-                                        </td>
+                                    </td>
                                     <td>
                                         {% if c.status_doc == 'agendar' %}
                                             <button class="btn-agendar" onclick="openAgendamentoModal({{ edital[0] }}, '{{ c.nome }}')">
                                                 Agendar
                                             </button>
-                                        {% elif c.status_doc == 'agendado' %}
-                                            <span class="status-agendado">Agendado</span>
-                                        {% elif c.status_doc == 'entregue' %}
-                                            <span class="status-entregue">Entregue</span>
+                                        {% elif c.status_doc == 'agendado' %}<span class="status-agendado">Agendado</span>
+                                        {% elif c.status_doc == 'entregue' %}<span class="status-entregue">Entregue</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -180,10 +146,8 @@
                                             {% else %}
                                                 <span style="color: #9ca3af;">(Aguardando Docs)</span>
                                             {% endif %}
-                                        {% elif c.status_pericia == 'agendado' %}
-                                            <span class="status-agendado">Agendada</span>
-                                        {% elif c.status_pericia == 'concluida' %}
-                                            <span class="status-entregue">Concluída</span>
+                                        {% elif c.status_pericia == 'agendado' %}<span class="status-agendado">Agendada</span>
+                                        {% elif c.status_pericia == 'concluida' %}<span class="status-entregue">Concluída</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -201,12 +165,7 @@
                         <table class="edital-table agendamentos-table">
                             <thead>
                                 <tr>
-                                    <th>Data</th>
-                                    <th>Hora</th>
-                                    <th>Candidato</th>
-                                    <th>Agendado por</th>
-                                    <th>Status</th>
-                                    <th>Ações</th>
+                                    <th>Data</th><th>Hora</th><th>Candidato</th><th>Agendado por</th><th>Status</th><th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -217,27 +176,18 @@
                                     <td>{{ agendamento[2] }}</td>
                                     <td>{{ agendamento[7] }}</td>
                                     <td>
-                                        {% if agendamento[5] == 'concluido' %}
-                                            <span class="badge-agendamento badge-success">Entregue (OK)</span>
-                                        {% else %}
-                                            <span class="badge-agendamento badge-warning">Agendado</span>
-                                        {% endif %}
+                                        {% if agendamento[5] == 'concluido' %}<span class="badge-agendamento badge-success">Entregue (OK)</span>
+                                        {% else %}<span class="badge-agendamento badge-warning">Agendado</span>{% endif %}
                                     </td>
                                     <td class="actions">
-                                        <button class="icon-button" title="Editar Agendamento"
-                                                data-agendamento='{{ agendamento|tojson }}'
-                                                onclick="openAgendamentoModal(this)">
+                                        <button class="icon-button" title="Editar Agendamento" data-agendamento='{{ agendamento|tojson }}' onclick="openAgendamentoModal(this)">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <form action="{{ url_for('usuarios.remover_agendamento', id_agendamento=agendamento[0]) }}" method="POST" onsubmit="return confirm('Tem certeza?');" style="display:inline;">
-                                            <button type="submit" class="icon-button" title="Remover Agendamento">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
+                                            <button type="submit" class="icon-button" title="Remover Agendamento"><i class="fas fa-trash-alt"></i></button>
                                         </form>
-                                        
                                         {% if agendamento[5] == 'agendado' %}
-                                            <button class="btn-sm btn-success" title="Concluir entrega e agendar perícia"
-                                                    onclick="openPericiaModal({{ edital[0] }}, '{{ agendamento[2] }}', {{ agendamento[0] }})">
+                                            <button class="btn-sm btn-success" title="Concluir entrega e agendar perícia" onclick="openPericiaModal({{ edital[0] }}, '{{ agendamento[2] }}', {{ agendamento[0] }})">
                                                 <i class="fas fa-user-md"></i> Concluir e Agendar
                                             </button>
                                         {% endif %}
@@ -256,12 +206,7 @@
                         <table class="edital-table agendamentos-table">
                             <thead>
                                 <tr>
-                                    <th>Data</th>
-                                    <th>Hora</th>
-                                    <th>Candidato</th>
-                                    <th>Agendado por</th>
-                                    <th>Status</th>
-                                    <th>Ações</th>
+                                    <th>Data</th><th>Hora</th><th>Candidato</th><th>Agendado por</th><th>Status</th><th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -272,11 +217,8 @@
                                     <td>{{ agendamento[2] }}</td>
                                     <td>{{ agendamento[7] }}</td>
                                     <td>
-                                        {% if agendamento[5] == 'concluido' %}
-                                            <span class="badge-agendamento badge-success">Realizada</span>
-                                        {% else %}
-                                            <span class="badge-agendamento badge-warning">Agendada</span>
-                                        {% endif %}
+                                        {% if agendamento[5] == 'concluido' %}<span class="badge-agendamento badge-success">Realizada</span>
+                                        {% else %}<span class="badge-agendamento badge-warning">Agendada</span>{% endif %}
                                     </td>
                                     <td class="actions">
                                         <button class="icon-button" title="Editar Perícia" data-agendamento='{{ agendamento|tojson }}' onclick="openAgendamentoModal(this, 'pericia')">
@@ -317,13 +259,11 @@
                     <input type="hidden" name="id_edital" id="id_edital_agendamento">
                     <input type="hidden" name="id_agendamento" id="id_agendamento">
                     <input type="hidden" name="tipo_agendamento" id="tipo_agendamento" value="documento">
-                    
                     <input type="hidden" name="id_documento_a_concluir" id="id_documento_a_concluir" value="">
                     
                     <div class="form-group">
                         <label for="nome_pessoa">Nome do Candidato</label>
-                        <input type="text" id="nome_pessoa" name="nome_pessoa" required list="lista-nomes-sugestoes">
-                        <datalist id="lista-nomes-sugestoes"></datalist>
+                        <input type="text" id="nome_pessoa" name="nome_pessoa" required>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -357,6 +297,9 @@
         if (body) body.classList.toggle('active');
         if (headerElement) headerElement.classList.toggle('active');
     }
+    
+    // Esta função foi REMOVIDA na última versão, pois não é mais necessária
+    // function toggleGroup(headerElement) { ... }
 
     const agendamentoModal = document.getElementById('agendamentoModal');
     const agendamentoForm = document.getElementById('agendamentoForm');
@@ -402,7 +345,7 @@
 
             if (nome_candidato) {
                 inputNome.value = nome_candidato;
-                inputNome.readOnly = true;
+                inputNome.readOnly = true; 
             } else {
                 inputNome.value = '';
                 inputNome.readOnly = false;
@@ -442,29 +385,6 @@
             closeAgendamentoModal();
         }
     }
-
-    const inputNomePessoa = document.getElementById('nome_pessoa');
-    const datalistSugestoes = document.getElementById('lista-nomes-sugestoes');
-
-    inputNomePessoa.addEventListener('input', async function() {
-        if (this.readOnly) return;
-        const query = this.value;
-        datalistSugestoes.innerHTML = ''; 
-
-        if (query.length < 2) return;
-
-        try {
-            const response = await fetch(`/usuario/api/candidatos/search?query=${query}`);
-            const nomes = await response.json();
-            nomes.forEach(nome => {
-                const option = document.createElement('option');
-                option.value = nome;
-                datalistSugestoes.appendChild(option);
-            });
-        } catch (error) {
-            console.error('Erro ao buscar sugestões:', error);
-        }
-    });
     
     async function toggleContatado(button) {
         const id_candidato = button.dataset.id;
@@ -485,10 +405,9 @@
 
             if (data.success) {
                 // ======================================================
-                // ALTERAÇÃO AQUI: Garante que o dataset seja 'true' ou 'false'
+                // CORREÇÃO DO BUG AQUI: Garante que o dataset seja 'true' ou 'false'
                 // ======================================================
                 button.dataset.contatado = data.novo_status ? 'true' : 'false';
-                // ======================================================
                 
                 if (data.novo_status) {
                     button.innerHTML = '<i class="fas fa-check"></i> Sim';
