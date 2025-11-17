@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emissão de Certificados - GAMA</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
+    <title>Emissão de Termo de Posse - GAMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/edital.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
 </head>
@@ -18,9 +16,9 @@
                 <div class="dashboard-user">
                     <span>{{ nome }}</span>
                     {% if session.get('tipo') == 'administrador' %}
-                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -30,6 +28,7 @@
         <main class="dashboard-content container">
             <div class="section-header">
                 <h2 class="page-title">Emissão de Termo de Posse</h2>
+                <p class="config-subtitle" style="margin: 0;">Gera o <strong>Termo de Posse</strong> e o <strong>Termo de Apresentação</strong> (em .zip)</p>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -40,24 +39,19 @@
 
             {% for edital in editais %}
             <div class="edital-card">
-                <div class="edital-header" onclick="toggleContent('body-cert-edital-{{ edital[0] }}', this)">
+                <div class="edital-header js-toggle-trigger" data-target="body-cert-edital-{{ edital[0] }}">
                     <div class="edital-info">
                         <strong>{{ edital[1] }}</strong>
                     </div>
                     <div class="actions">
-                        <button class="icon-button" title="Emitir Certificados em Lote" 
-                                onclick="event.stopPropagation(); openEmissaoLoteModal({{ edital[0] }});">
-                            <i class="fas fa-layer-group"></i>
-                        </button>
-                    </div>
+                        </div>
                 </div>
-
                 <div class="edital-body" id="body-cert-edital-{{ edital[0] }}">
                     {% set cargos_do_edital = candidatos_por_edital_agrupado.get(edital[0], {}) %}
                     {% if cargos_do_edital %}
                         {% for cargo_nome, lista_de_candidatos in cargos_do_edital.items() %}
                         <div class="cargo-group">
-                            <div class="cargo-header" onclick="event.stopPropagation(); toggleContent('body-cert-cargo-{{ edital[0] }}-{{ loop.index }}', this)">
+                            <div class="cargo-header js-toggle-trigger" data-target="body-cert-cargo-{{ edital[0] }}-{{ loop.index }}">
                                 <h4 class="cargo-title">{{ cargo_nome }} 
                                     {% if lista_de_candidatos[0].padrao_vencimento %}
                                         (Nível {{ lista_de_candidatos[0].padrao_vencimento }})
@@ -70,6 +64,7 @@
                                         <tr>
                                             <th>Candidato</th>
                                             <th>Inscrição</th>
+                                            <th>Situação</th>
                                             <th style="width: 15%;">Ações</th>
                                         </tr>
                                     </thead>
@@ -78,12 +73,24 @@
                                         <tr>
                                             <td>{{ candidato.nome }}</td>
                                             <td>{{ candidato.numero_inscricao }}</td>
+                                            <td>
+                                                {% if candidato.situacao == 'empossado' %}
+                                                    <span class="badge badge-success">Empossado</span>
+                                                {% else %}
+                                                    <span class="badge badge-warning">Nomeado</span>
+                                                {% endif %}
+                                            </td>
                                             <td class="actions">
-                                                <button class="btn btn-primary" style="padding: 0.5rem 1rem;" 
-                                                        data-candidato='{{ candidato|tojson }}'
-                                                        onclick="openCertificadoModal(this)">
-                                                    Emitir
-                                                </button>
+                                                <form action="{{ url_for('certificado.gerar_certificado_individual', id_candidato=candidato.id_candidato) }}" method="POST" class="form-emitir-individual">
+                                                    <input type="hidden" name="reitor" value="{{ default_reitor or '' }}">
+                                                    <input type="hidden" name="local" value="{{ default_local or '' }}">
+                                                    
+                                                    <button type="button" class="btn btn-primary" style="padding: 0.5rem 1rem;" 
+                                                            data-candidato='{{ candidato|tojson }}'
+                                                            onclick="openConfirmacaoModal(this)">
+                                                        Emitir
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -93,7 +100,7 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum candidato nomeado encontrado para este edital.</p></div>
+                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum candidato (nomeado ou empossado) encontrado para este edital.</p></div>
                     {% endif %}
                 </div>
             </div>
@@ -101,201 +108,179 @@
         </main>
     </div>
 
-    <div id="certificadoModal" class="modal">
+    <div id="confirmacaoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="certificadoModalTitle">Emitir Termo de Posse</h3> <button class="icon-button" onclick="closeCertificadoModal()"><i class="fas fa-times"></i></button>
+                <h3 id="confirmacaoModalTitle">Confirmar Emissão</h3>
+                <button class="icon-button" onclick="closeConfirmacaoModal()"><i class="fas fa-times"></i></button>
             </div>
-            <form id="certificadoForm" action="{{ url_for('certificado.gerar_certificado') }}" method="POST">
-                <div class="modal-body">
-                    <input type="hidden" name="id_candidato" id="id_candidato_cert">
-                    <input type="hidden" name="template_selecionado" value="modeloposse.docx">
-                    
-                    <div class="form-group">
-                        <label>Candidato</label>
-                        <p id="nome_candidato_cert" style="font-weight: bold; font-size: 1.1rem;"></p>
+            <div class="modal-body">
+                <p>Você está prestes a gerar os documentos (Posse e Apresentação) para:</p>
+                <h4 id="nome_candidato_confirm" style="margin: 1rem 0; font-size: 1.2rem; text-align: center;"></h4>
+                
+                <p>Os documentos serão gerados usando os seguintes dados <strong>já salvos no candidato</strong>:</p>
+                <ul>
+                    <li><strong>Data de Posse:</strong> <span id="data_posse_confirm"></span></li>
+                    <li><strong>Portaria:</strong> <span id="portaria_confirm"></span></li>
+                    <li><strong>Lotação/Unidade:</strong> <span id="lotacao_confirm"></span></li>
+                    <li><strong>Código da Vaga:</strong> <span id="cod_vaga_confirm"></span></li>
+                </ul>
+                <hr style="margin: 1rem 0;">
+                <p>Os seguintes dados (definidos como padrão) serão usados:</p>
+                <ul>
+                    <li><strong>Reitor:</strong> <span id="reitor_confirm">{{ default_reitor or 'NÃO DEFINIDO' }}</span></li>
+                    <li><strong>Local da Posse:</strong> <span id="local_confirm">{{ default_local or 'NÃO DEFINIDO' }}</span></li>
+                </ul>
+                
+                <div id="confirmacao-erro" class="alert alert-error" style="display: none; margin-top: 1rem;">
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Nível</label>
-                        <p id="nivel_candidato_cert" style="font-weight: bold; font-size: 1.1rem;"></p>
-                    </div>
-
-                    <div id="campos_termo_de_posse">
-                        <hr style="margin: 1.5rem 0;">
-                        <p style="font-weight: 500; margin-bottom: 1rem;">Preencha os dados para o Termo de Posse:</p>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="portaria">Nº da Portaria</label>
-                                <input type="text" id="portaria" name="portaria" required> 
-                            </div>
-                            <div class="form-group">
-                                <label for="local">Local</label>
-                                <select id="local" name="local" required> <option value="" disabled selected>-- Selecione o local --</option>
-                                    {% for local in opcoes_local %}
-                                        <option value="{{ local.valor_opcao }}">{{ local.valor_opcao }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                             <div class="form-group">
-                                <label for="reitor">Pro-Reitor(a)</label>
-                                <select id="reitor" name="reitor" required> <option value="" disabled selected>-- Selecione o pro-reitor --</option>
-                                    {% for reitor in opcoes_reitor %}
-                                        <option value="{{ reitor.valor_opcao }}">{{ reitor.valor_opcao }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="carga_horaria">Carga Horária</label>
-                                <input type="text" id="carga_horaria" name="carga_horaria" value="40">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="lotacao">Lotação</label>
-                                <input type="text" id="lotacao" name="lotacao">
-                            </div>
-                            <div class="form-group">
-                                <label for="codigo_vaga">Código da Vaga (SIAPE)</label>
-                                <input type="text" id="codigo_vaga" name="codigo_vaga">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="data">Data de Posse (será usada no rodapé)</label>
-                                <input type="date" id="data" name="data" required> </div>
-                            <div class="form-group">
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeCertificadoModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Gerar Certificado</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmacaoModal()">Cancelar</button>
+                <button type="button" id="btnConfirmarEmissao" class="btn btn-primary" onclick="submitFormularioIndividual()">Gerar Documentos</button>
+            </div>
         </div>
     </div>
     
-    <div id="emissaoLoteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Emitir Documentos em Lote</h3>
-                <button class="icon-button" onclick="closeEmissaoLoteModal()"><i class="fas fa-times"></i></button>
-            </div>
-
-            <form action="{{ url_for('certificado.gerar_lote') }}" method="POST" enctype="multipart/form-data">
-                <div class="modal-body">
-                    <p>Envie uma planilha <strong>.xlsx</strong> com os dados para a emissão. A planilha deve conter as seguintes colunas, **exatamente nesta ordem e com estes nomes na primeira linha (cabeçalho)**:</p>
-                    <br>
-                    <p><code>nome, cargo, data, portaria, nivel, local, reitor, carga_horaria, lotacao, codigo_vaga</code></p>
-                    <br>
-                    
-                    <div class="form-group">
-                        <label for="planilha">Arquivo da Planilha (.xlsx):</label>
-                        <input type="file" id="planilha" name="planilha" accept=".xlsx" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeEmissaoLoteModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Gerar Documentos</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-<script>
-    function toggleContent(elementId, headerElement) {
-        const body = document.getElementById(elementId);
-        if (body) body.classList.toggle('active');
-        if (headerElement) headerElement.classList.toggle('active');
-    }
-
-    const certificadoModal = document.getElementById('certificadoModal');
-    
+    <script>
     // ======================================================
-    // ALTERAÇÃO AQUI: Função openCertificadoModal atualizada
+    // ALTERAÇÃO AQUI: Listener de Eventos Simplificado
     // ======================================================
-    function openCertificadoModal(button) {
-        const candidato = JSON.parse(button.dataset.candidato);
+    document.addEventListener('DOMContentLoaded', () => {
         
-        // Reseta o formulário (limpa todos os campos)
-        document.getElementById('certificadoForm').reset();
-        
-        // Preenche os dados do candidato
-        document.getElementById('id_candidato_cert').value = candidato.id_candidato;
-        document.getElementById('nome_candidato_cert').innerText = candidato.nome;
-        
-        // Preenche o Nível
-        const nivelDisplay = document.getElementById('nivel_candidato_cert');
-        if (candidato.padrao_vencimento) {
-            nivelDisplay.innerText = "" + candidato.padrao_vencimento;
-        } else {
-            nivelDisplay.innerText = "Nível não cadastrado para este cargo!"; 
-        }
+        // --- Listener para abrir/fechar seções (Edital e Cargo) ---
+        document.querySelectorAll('.js-toggle-trigger').forEach(trigger => {
+            trigger.addEventListener('click', function(event) {
+                // Impede que o clique no header do cargo feche o card do edital
+                event.stopPropagation(); 
+                
+                const targetId = this.dataset.target;
+                const body = document.getElementById(targetId);
+                if (body) {
+                    body.classList.toggle('active');
+                    this.classList.toggle('active'); // Adiciona/remove 'active' do header também
+                }
+            });
+        });
 
-        // Preenche a Data de Posse (se houver)
-        const dataPosseInput = document.getElementById('data');
-        if (candidato.data_posse) {
-            dataPosseInput.value = candidato.data_posse;
-        } else {
-            dataPosseInput.value = ''; // Apenas por garantia
-        }
-        
-        // Preenche Portaria e Lotação (se já existirem no candidato)
-        if (candidato.portaria) {
-            document.getElementById('portaria').value = candidato.portaria;
-        }
-        if (candidato.lotacao) {
-            document.getElementById('lotacao').value = candidato.lotacao;
-        }
-        if (candidato.cod_vaga) {
-            document.getElementById('codigo_vaga').value = candidato.cod_vaga;
-        }
-        // ---- INÍCIO DA NOVA ALTERAÇÃO ----
-        // Preenche os campos 'reitor' e 'local' com os valores padrão
-        // passados pela rota (ou com '' se não houver padrão)
-        document.getElementById('reitor').value = "{{ default_reitor or '' }}";
-        document.getElementById('local').value = "{{ default_local or '' }}";
-        // ---- FIM DA NOVA ALTERAÇÃO ----
-        
-        certificadoModal.classList.add('active');
-    }
+        // --- Listener para o botão "Emitir Lote" REMOVIDO ---
+
+        // --- Auto-fechar Alertas (Flash Messages) ---
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            setTimeout(function() {
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.style.display = 'none';
+                }, 500);
+            }, 5000);
+        });
+    });
     // ======================================================
     // FIM DA ALTERAÇÃO
     // ======================================================
 
-    function closeCertificadoModal() {
-        certificadoModal.classList.remove('active');
+    // --- JAVASCRIPT MODAL DE CONFIRMAÇÃO INDIVIDUAL ---
+    const confirmacaoModal = document.getElementById('confirmacaoModal');
+    let formParaSubmeter = null; 
+
+    function openConfirmacaoModal(button) {
+        formParaSubmeter = button.closest('.form-emitir-individual');
+        const candidato = JSON.parse(button.dataset.candidato);
+        
+        let podeGerar = true;
+        let erroBase = `
+            <strong>Erro:</strong> Não é possível gerar documentos. 
+            Por favor, vá à tela de "Gerenciamento de Editais" e preencha os seguintes dados do candidato:
+        `;
+        let errosDetalhados = [];
+
+        document.getElementById('nome_candidato_confirm').innerText = candidato.nome;
+        
+        const dataPosse = candidato.data_posse || "PENDENTE";
+        document.getElementById('data_posse_confirm').innerText = dataPosse;
+        if (dataPosse === "PENDENTE") {
+            podeGerar = false;
+            errosDetalhados.push("Data da Posse");
+        }
+        
+        const portaria = candidato.portaria || "PENDENTE";
+        document.getElementById('portaria_confirm').innerText = portaria;
+        if (portaria === "PENDENTE") {
+            podeGerar = false;
+            errosDetalhados.push("Portaria");
+        }
+        
+        const lotacao = candidato.lotacao || "PENDENTE";
+        document.getElementById('lotacao_confirm').innerText = lotacao;
+        if (lotacao === "PENDENTE") {
+            podeGerar = false;
+            errosDetalhados.push("Lotação/Unidade");
+        }
+        
+        document.getElementById('cod_vaga_confirm').innerText = candidato.cod_vaga || "Nenhum";
+        
+        const reitor = document.getElementById('reitor_confirm').innerText;
+        const local = document.getElementById('local_confirm').innerText;
+        
+        if (reitor === 'NÃO DEFINIDO' || local === 'NÃO DEFINIDO') {
+            podeGerar = false;
+            erroBase = `
+                <strong>Erro:</strong> Faltam dados de Configuração. 
+                Por favor, vá em "Configurações" e defina um Reitor e um Local como Padrão.
+            `;
+            errosDetalhados = []; 
+        }
+
+        const btnConfirmar = document.getElementById('btnConfirmarEmissao');
+        const msgErro = document.getElementById('confirmacao-erro');
+        
+        if (podeGerar) {
+            msgErro.style.display = 'none';
+            btnConfirmar.disabled = false;
+        } else {
+            if(errosDetalhados.length > 0) {
+                 msgErro.innerHTML = erroBase + " <strong>(" + errosDetalhados.join(', ') + ")</strong>";
+            } else {
+                msgErro.innerHTML = erroBase;
+            }
+            msgErro.style.display = 'block';
+            btnConfirmar.disabled = true;
+        }
+        
+        confirmacaoModal.classList.add('active');
     }
 
-    // Funções para o Modal de Emissão em Lote
-    const emissaoLoteModal = document.getElementById('emissaoLoteModal');
-    function openEmissaoLoteModal(id_edital) {
-        document.querySelector('#emissaoLoteModal form').reset();
-        console.log("Abrindo modal de emissão em lote para o edital ID:", id_edital);
-        emissaoLoteModal.classList.add('active');
+    function closeConfirmacaoModal() {
+        confirmacaoModal.classList.remove('active');
+        formParaSubmeter = null; 
     }
-    function closeEmissaoLoteModal() {
-        emissaoLoteModal.classList.remove('active');
+
+    function submitFormularioIndividual() {
+        if (formParaSubmeter) {
+            formParaSubmeter.submit();
+        }
+        closeConfirmacaoModal();
     }
+    
+    // ======================================================
+    // JAVASCRIPT DO MODAL DE LOTE REMOVIDO
+    // ======================================================
+    // const loteSelecionadosModal = ...
+    // function abrirModalLote(...) { ... }
+    // function openLoteSelecionadosModal(...) { ... }
+    // function closeLoteSelecionadosModal(...) { ... }
+    // checkboxSelecionarTodosLote.addEventListener(...)
+    // ======================================================
 
     // Fechar os modais se o usuário clicar fora deles
     window.onclick = function(event) {
-        if (event.target == certificadoModal) {
-            closeCertificadoModal();
+        if (event.target == confirmacaoModal) {
+            closeConfirmacaoModal();
         }
-        if (event.target == emissaoLoteModal) {
-            closeEmissaoLoteModal();
-        }
+        // Listener para o modal de lote removido
     }
-
 </script>
 
 </body>

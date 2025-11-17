@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Editais - GAMA</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/edital.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
 </head>
@@ -18,9 +16,9 @@
                 <div class="dashboard-user">
                     <span>{{ session.get('nome') }}</span>
                     {% if session.get('tipo') == 'administrador' %}
-                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-primary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-primary">Voltar ao Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>

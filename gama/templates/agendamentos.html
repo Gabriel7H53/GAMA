@@ -4,64 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Documentos - GAMA</title>
-    
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/gerenciar_editais.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/agendamento.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
-
-    <style>
-        /* Estilos da tabela de agendamentos */
-        .agendamentos-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
-        .agendamentos-table th,
-        .agendamentos-table td { padding: 12px 10px; text-align: left; vertical-align: middle; word-wrap: break-word; border-bottom: 1px solid #e5e7eb; }
-        .agendamentos-table tr:last-child td { border-bottom: none; }
-        .agendamentos-table th:nth-child(1), .agendamentos-table td:nth-child(1) { width: 12%; } /* Data */
-        .agendamentos-table th:nth-child(2), .agendamentos-table td:nth-child(2) { width: 7%; }  /* Hora */
-        .agendamentos-table th:nth-child(3), .agendamentos-table td:nth-child(3) { width: 28%; } /* Candidato */
-        .agendamentos-table th:nth-child(4), .agendamentos-table td:nth-child(4) { width: 15%; } /* Agendado por */
-        .agendamentos-table th:nth-child(5), .agendamentos-table td:nth-child(5) { width: 12%; } /* Status */
-        .agendamentos-table th:nth-child(6), .agendamentos-table td:nth-child(6) { width: 26%; } /* Ações */
-        .agendamentos-table .actions { white-space: nowrap; }
-
-        /* Estilos para a nova tabela de Candidatos */
-        .candidatos-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
-        .candidatos-table th,
-        .candidatos-table td { padding: 12px 10px; text-align: left; vertical-align: middle; border-bottom: 1px solid #e5e7eb; }
-        .candidatos-table th:nth-child(1) { width: 35%; } /* Nome */
-        .candidatos-table th:nth-child(2) { width: 15%; text-align: center; } /* Contatado */
-        .candidatos-table th:nth-child(3) { width: 25%; } /* Entrega Doc */
-        .candidatos-table th:nth-child(4) { width: 25%; } /* Perícia */
-        
-        .candidatos-table td:nth-child(2) { text-align: center; }
-
-        /* Botão de Contatado (liga/desliga) */
-        .btn-toggle { display: inline-flex; align-items: center; justify-content: center; padding: 0.375rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.2s ease; }
-        .btn-toggle[data-contatado="true"] { background-color: #dcfce7; border-color: #16a34a; color: #15803d; }
-        .btn-toggle[data-contatado="false"] { background-color: #f3f4f6; color: #4b5563; }
-        .btn-toggle[data-contatado="true"]:hover { background-color: #bbf7d0; }
-        .btn-toggle[data-contatado="false"]:hover { background-color: #e5e7eb; }
-        .btn-toggle .fas { margin-right: 6px; }
-
-        /* Botão "Agendar" pequeno */
-        .btn-agendar { background-color: #3b82f6; color: white; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
-        .btn-agendar:hover { background-color: #2563eb; }
-
-        /* Status de Agendamento */
-        .status-agendado { font-weight: 500; color: #d97706; }
-        .status-entregue { font-weight: 500; color: #16a34a; }
-
-        /* Outros estilos */
-        .sub-section-title { margin-top: 1.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #ddd; font-size: 1.1rem; color: #333; }
-        .actions .btn-sm.btn-success { display: inline-flex; align-items: center; background-color: #2563EB; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .actions .btn-sm.btn-success:hover { background-color: #4338CA; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .actions .btn-sm.btn-success:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .fa-user-md { margin-right: 6px; }
-        .actions .btn-sm.btn-concluir { display: inline-flex; align-items: center; background-color: var(--primary); color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .actions .btn-sm.btn-concluir:hover { background-color: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .fa-check-square { margin-right: 6px; }
-    </style>
     </head>
 <body>
     <div class="dashboard">
@@ -71,9 +16,9 @@
                 <div class="dashboard-user">
                     <span>{{ nome }}</span>
                     {% if session.get('tipo') == 'administrador' %}
-                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-primary">Voltar ao Painel</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-primary">Voltar ao Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>

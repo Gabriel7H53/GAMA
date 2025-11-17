@@ -16,9 +16,9 @@
             <div class="dashboard-user">
                 <span>{{ nome }}</span>
                 {% if session.get('tipo') == 'administrador' %}
-                    <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                    <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
                 {% else %}
-                    <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Voltar ao Painel</a>
+                    <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
                 {% endif %}
                 <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
             </div>
@@ -36,15 +36,7 @@
             <div class="uniform-card">
                 <div class="card-icon">✒️</div>
                 <h3>Termo de Posse</h3>
-                <p>Gerar o Termo de Posse para um novo servidor com base em dados de uma planilha.</p>
-                <a href="{{ url_for('certificado.painel_certificados') }}" class="btn btn-primary">Acessar</a>
-            </div>
-
-            <div class="uniform-card">
-                <div class="card-icon">📄</div>
-                <h3>Termo de Apresentação</h3>
-                <p>Emitir um termo que comprova a apresentação do servidor na unidade de lotação.</p>
-                <a href="{{ url_for('certificado.painel_apresentacao') }}" class="btn btn-primary">Acessar</a>
+                <p>Gerar o Termo de Posse e o Termo de Apresentação para novos servidores.</p> <a href="{{ url_for('certificado.painel_certificados') }}" class="btn btn-primary">Acessar</a>
             </div>
 
             <div class="uniform-card">
