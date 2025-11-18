@@ -46,27 +46,6 @@ class Agendamento:
 
 
     @staticmethod
-    def get_agendamento_documento_concluido(id_edital, nome_candidato):
-        """Verifica se existe um agendamento de documento 'concluido' para um candidato específico no edital."""
-        conn = conectar()
-        cursor = conn.cursor()
-        try:
-            cursor.execute("""
-                SELECT 1 
-                FROM Agendamento
-                WHERE id_edital = ? 
-                  AND nome_pessoa_entrega = ? 
-                  AND tipo_agendamento = 'documento' 
-                  AND status_agendamento = 'concluido'
-            """, (id_edital, nome_candidato))
-            return cursor.fetchone() is not None
-        except sqlite3.Error as e:
-            print(f"Erro ao verificar agendamento concluído: {e}")
-            return False
-        finally:
-            conn.close()
-
-    @staticmethod
     def get_by_edital(id_edital):
         """Busca todos os agendamentos de um edital específico, trazendo o nome do usuário."""
         conn = conectar()

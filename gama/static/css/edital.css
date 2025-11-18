@@ -391,3 +391,37 @@ body {
     .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
     .form-row .form-group { margin-bottom: 1rem; }
 }
+
+        .bulk-action-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: none; /* Escondido por padrão */
+            align-items: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+        .bulk-action-bar.active {
+            display: flex;
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { bottom: -100px; opacity: 0; }
+            to { bottom: 20px; opacity: 1; }
+        }
+        .count-badge {
+            background-color: #fff;
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .checkbox-col { width: 40px; text-align: center; }
+        .checkbox-custom { transform: scale(1.2); cursor: pointer; }

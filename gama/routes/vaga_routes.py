@@ -8,11 +8,8 @@ import tempfile
 vaga_bp = Blueprint('vaga', __name__, template_folder='../templates')
 
 def check_admin():
-    return 'usuario_id' in session and session.get('tipo') == 'administrador' or 'usuario'
+    return 'usuario_id' in session and session.get('tipo') == 'administrador' or "usuario"
 
-# ======================================================
-# ALTERAÇÃO AQUI: Rota principal do painel
-# ======================================================
 @vaga_bp.route('/painel') # Removido o '_vagas' para ser o painel principal
 def painel_vagas():
     if not check_admin():
@@ -44,11 +41,7 @@ def painel_vagas():
             vagas_por_cargo={},
             candidatos_sistema=[]
         )
-
-# --- ROTAS DE UPLOAD ---
-# ======================================================
-# ALTERAÇÃO AQUI: Removido o prefixo '/vagas/'
-# ======================================================
+    
 @vaga_bp.route('/upload_lote', methods=['POST'])
 def upload_lote_vagas():
     if not check_admin():
@@ -88,10 +81,6 @@ def upload_lote_vagas():
 
     return redirect(url_for('vaga.painel_vagas'))
 
-# --- ROTAS CRUD CARGO ---
-# ======================================================
-# ALTERAÇÃO AQUI: Removido o prefixo '/vagas/'
-# ======================================================
 @vaga_bp.route('/cargo/adicionar', methods=['POST'])
 def adicionar_cargo():
     if not check_admin(): return redirect(url_for('auth.login'))
@@ -108,9 +97,6 @@ def adicionar_cargo():
     
     return redirect(url_for('vaga.painel_vagas'))
 
-# ======================================================
-# ALTERAÇÃO AQUI: Removido o prefixo '/vagas/'
-# ======================================================
 @vaga_bp.route('/cargo/editar/<int:id_cargo>', methods=['POST'])
 def editar_cargo(id_cargo):
     if not check_admin(): return redirect(url_for('auth.login'))
@@ -127,9 +113,6 @@ def editar_cargo(id_cargo):
         
     return redirect(url_for('vaga.painel_vagas'))
 
-# ======================================================
-# ALTERAÇÃO AQUI: Removido o prefixo '/vagas/'
-# ======================================================
 @vaga_bp.route('/cargo/remover/<int:id_cargo>', methods=['POST'])
 def remover_cargo(id_cargo):
     if not check_admin(): return redirect(url_for('auth.login'))
@@ -141,10 +124,6 @@ def remover_cargo(id_cargo):
         
     return redirect(url_for('vaga.painel_vagas'))
 
-# --- ROTAS CRUD VAGA ---
-# ======================================================
-# ALTERAÇÃO AQUI: Removido o prefixo '/vagas/'
-# ======================================================
 @vaga_bp.route('/vaga/adicionar', methods=['POST'])
 def adicionar_vaga():
     if not check_admin(): return redirect(url_for('auth.login'))
@@ -176,9 +155,6 @@ def adicionar_vaga():
 
     return redirect(url_for('vaga.painel_vagas'))
 
-# ======================================================
-# ALTERAÇÃO AQUI: Removido o prefixo '/vagas/'
-# ======================================================
 @vaga_bp.route('/vaga/editar/<int:id_vaga>', methods=['POST'])
 def editar_vaga(id_vaga):
     if not check_admin(): return redirect(url_for('auth.login'))
@@ -209,9 +185,6 @@ def editar_vaga(id_vaga):
 
     return redirect(url_for('vaga.painel_vagas'))
 
-# ======================================================
-# ALTERAÇÃO AQUI: Removido o prefixo '/vagas/'
-# ======================================================
 @vaga_bp.route('/vaga/remover/<int:id_vaga>', methods=['POST'])
 def remover_vaga(id_vaga):
     if not check_admin(): return redirect(url_for('auth.login'))

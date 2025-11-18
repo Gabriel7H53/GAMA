@@ -195,8 +195,67 @@ def gerar_certificado_individual(id_candidato):
         )
     else:
         return redirect(url_for('certificado.painel_certificados'))
+    
+@certificado_bp.route('/gerar/lote', methods=['POST'])
+def gerar_certificado_lote():
+    """
+    Gera um ZIP contendo os ZIPs individuais de múltiplos candidatos selecionados.
+    """
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
 
-# ======================================================
-# TODAS AS ROTAS DE LOTE (gerar_lote e gerar_lote_selecionados)
-# FORAM REMOVIDAS.
-# ======================================================
+    # 1. Captura os dados do formulário
+    candidatos_ids = request.form.getlist('candidatos_ids') # Recebe lista de IDs
+    reitor = request.form.get('reitor')
+    local = request.form.get('local')
+    
+    if not candidatos_ids:
+        flash('Nenhum candidato selecionado.', 'error')
+        return redirect(url_for('certificado.painel_certificados'))
+
+    if not reitor or not local:
+        flash('Reitor e Local são obrigatórios.', 'error')
+        return redirect(url_for('certificado.painel_certificados'))
+
+    # 2. Prepara o ZIP Mestre
+    master_zip_buffer = io.BytesIO()
+    sucesso_count = 0
+    erros = []
+
+    try:
+        with zipfile.ZipFile(master_zip_buffer, 'w', zipfile.ZIP_DEFLATED) as master_zip:
+            for id_candidato in candidatos_ids:
+                # Reutiliza a função existente para gerar o ZIP individual
+                zip_buffer_individual, zip_filename = gerar_documentos_zip(id_candidato, reitor, local)
+                
+                if zip_buffer_individual:
+                    # Adiciona o ZIP individual dentro do ZIP Mestre
+                    master_zip.writestr(zip_filename, zip_buffer_individual.getvalue())
+                    sucesso_count += 1
+                else:
+                    # Se falhou (ex: falta data de posse), buscamos o nome para avisar
+                    cand = Candidato.get_by_id(id_candidato)
+                    nome_erro = cand['nome'] if cand else f"ID {id_candidato}"
+                    erros.append(nome_erro)
+
+        if sucesso_count == 0:
+            flash('Não foi possível gerar nenhum documento. Verifique os dados dos candidatos (Data de Posse, etc).', 'error')
+            return redirect(url_for('certificado.painel_certificados'))
+
+        if erros:
+            flash(f'Gerado com sucesso para {sucesso_count} candidatos. Erro ao gerar para: {", ".join(erros)}', 'warning')
+        
+        master_zip_buffer.seek(0)
+        data_hoje = datetime.now().strftime('%Y-%m-%d')
+        nome_arquivo_final = f'Lote_Termos_Posse_{data_hoje}.zip'
+
+        return send_file(
+            master_zip_buffer,
+            as_attachment=True,
+            download_name=nome_arquivo_final,
+            mimetype='application/zip'
+        )
+
+    except Exception as e:
+        flash(f'Erro fatal ao gerar lote: {e}', 'error')
+        return redirect(url_for('certificado.painel_certificados'))

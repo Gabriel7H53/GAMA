@@ -186,6 +186,44 @@ class Vaga:
             conn.close()
 
     @staticmethod
+    def ocupar_por_codigo(cod_vaga, nome_ocupante):
+        """Atualiza o status da vaga para Ocupada através do código."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE Vaga
+                SET situacao = 'Ocupada', ocupante_atual = ?
+                WHERE cod_vaga = ?
+            """, (nome_ocupante, cod_vaga))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao ocupar vaga {cod_vaga}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    @staticmethod
+    def desocupar_por_codigo(cod_vaga):
+        """Libera a vaga através do código."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE Vaga
+                SET situacao = 'Livre', ocupante_atual = NULL
+                WHERE cod_vaga = ?
+            """, (cod_vaga,))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao desocupar vaga {cod_vaga}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    @staticmethod
     def get_all_vagas_livres():
         """Busca todas as vagas com situação 'Livre'."""
         conn = conectar()
@@ -328,6 +366,3 @@ class Vaga:
             conn.close()
         
         return cargos_criados, vagas_criadas_atualizadas, erros
-    # ======================================================
-    # FIM DA ALTERAÇÃO
-    # ======================================================

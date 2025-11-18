@@ -60,9 +60,14 @@ class Edital:
         conn = conectar()
         cursor = conn.cursor()
         try:
+            # Limpa as tabelas dependentes
+            cursor.execute("DELETE FROM Agendamento WHERE id_edital = ?", (id_edital,)) # <-- LINHA ADICIONADA
             cursor.execute("DELETE FROM Candidato WHERE id_edital = ?", (id_edital,))
             cursor.execute("DELETE FROM Cargo WHERE id_edital = ?", (id_edital,))
+            
+            # Exclui o edital principal
             cursor.execute("DELETE FROM Edital WHERE id_edital = ?", (id_edital,))
+            
             conn.commit()
             return True, "Edital e todos os seus dados foram removidos."
         except sqlite3.Error as e:

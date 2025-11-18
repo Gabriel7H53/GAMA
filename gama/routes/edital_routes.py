@@ -157,19 +157,20 @@ def adicionar_candidato(id_edital):
     lotacao = request.form.get('lotacao')
     contatado = 'contatado' in request.form
     
-    # ======================================================
-    # CORREÇÃO AQUI
-    # ======================================================
     cod_vaga = request.form.get('cod_vaga')
-    if cod_vaga == "": # Se for uma string vazia (opção "-- Nenhuma --")
-        cod_vaga = None # Salva como None (NULL no banco)
-    # ======================================================
-    
+    if cod_vaga == "": 
+        cod_vaga = None
+
     success, message = Candidato.create(
         id_edital, id_cargo, nome, inscricao, nota, classificacao, 
         pcd, cotista, situacao, data_posse, 
         portaria, lotacao, contatado, cod_vaga
     ) 
+
+    # --- NOVO: Atualiza a Vaga se foi selecionada ---
+    if success and cod_vaga:
+        Vaga.ocupar_por_codigo(cod_vaga, nome)
+    # -----------------------------------------------
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
@@ -179,6 +180,11 @@ def adicionar_candidato(id_edital):
 def editar_candidato(id_candidato):
     if not check_admin():
         return redirect(url_for('auth.login'))
+
+    # --- NOVO: Busca dados ANTES da atualização para saber a vaga antiga ---
+    candidato_antigo = Candidato.get_by_id(id_candidato)
+    cod_vaga_antigo = candidato_antigo['cod_vaga'] if candidato_antigo else None
+    # ---------------------------------------------------------------------
 
     id_edital = request.form['id_edital']
     nome_cargo = request.form['nome_cargo'].strip()
@@ -197,19 +203,28 @@ def editar_candidato(id_candidato):
     lotacao = request.form.get('lotacao')
     contatado = 'contatado' in request.form
     
-    # ======================================================
-    # CORREÇÃO AQUI
-    # ======================================================
-    cod_vaga = request.form.get('cod_vaga')
-    if cod_vaga == "": # Se for uma string vazia (opção "-- Nenhuma --")
-        cod_vaga = None # Salva como None (NULL no banco)
-    # ======================================================
+    cod_vaga_novo = request.form.get('cod_vaga')
+    if cod_vaga_novo == "": 
+        cod_vaga_novo = None
 
     success, message = Candidato.update(
         id_candidato, id_cargo, nome, inscricao, nota, classificacao, 
         pcd, cotista, situacao, data_posse, 
-        portaria, lotacao, contatado, cod_vaga
+        portaria, lotacao, contatado, cod_vaga_novo
     ) 
+
+    # --- NOVO: Lógica de Troca de Vagas ---
+    if success:
+        # 1. Se tinha vaga antes e mudou (ou removeu), libera a antiga
+        if cod_vaga_antigo and cod_vaga_antigo != cod_vaga_novo:
+            Vaga.desocupar_por_codigo(cod_vaga_antigo)
+        
+        # 2. Se tem vaga nova (e é diferente da antiga ou apenas atualização de nome), ocupa a nova
+        if cod_vaga_novo:
+            # Atualiza o ocupante (útil mesmo se a vaga for a mesma, caso o nome do candidato tenha mudado)
+            Vaga.ocupar_por_codigo(cod_vaga_novo, nome)
+    # --------------------------------------
+
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 
@@ -219,7 +234,18 @@ def remover_candidato(id_candidato):
     if not check_admin():
         return redirect(url_for('auth.login'))
         
+    # --- NOVO: Verifica se o candidato ocupava uma vaga ---
+    candidato = Candidato.get_by_id(id_candidato)
+    cod_vaga = candidato['cod_vaga'] if candidato else None
+    # ----------------------------------------------------
+
     success, message = Candidato.delete(id_candidato)
+    
+    # --- NOVO: Libera a vaga se a exclusão funcionou ---
+    if success and cod_vaga:
+        Vaga.desocupar_por_codigo(cod_vaga)
+    # ---------------------------------------------------
+
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 

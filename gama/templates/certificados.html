@@ -16,9 +16,9 @@
                 <div class="dashboard-user">
                     <span>{{ nome }}</span>
                     {% if session.get('tipo') == 'administrador' %}
-                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-secondary">Painel Admin</a>
+                        <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-primary">Painel Admin</a>
                     {% else %}
-                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-secondary">Meu Painel</a>
+                        <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-primary">Meu Painel</a>
                     {% endif %}
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
                 </div>
@@ -37,6 +37,12 @@
                 {% endfor %}{% endif %}
             {% endwith %}
 
+            <form id="form-lote" action="{{ url_for('certificado.gerar_certificado_lote') }}" method="POST">
+                <input type="hidden" name="reitor" id="lote_reitor">
+                <input type="hidden" name="local" id="lote_local">
+                <div id="inputs-container"></div> 
+            </form>
+
             {% for edital in editais %}
             <div class="edital-card">
                 <div class="edital-header js-toggle-trigger" data-target="body-cert-edital-{{ edital[0] }}">
@@ -44,7 +50,10 @@
                         <strong>{{ edital[1] }}</strong>
                     </div>
                     <div class="actions">
-                        </div>
+                        <button type="button" class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="event.stopPropagation(); selecionarTodosEdital(this)">
+                            Selecionar Todos
+                        </button>
+                    </div>
                 </div>
                 <div class="edital-body" id="body-cert-edital-{{ edital[0] }}">
                     {% set cargos_do_edital = candidatos_por_edital_agrupado.get(edital[0], {}) %}
@@ -62,6 +71,9 @@
                                 <table class="edital-table">
                                     <thead>
                                         <tr>
+                                            <th class="checkbox-col">
+                                                <input type="checkbox" class="checkbox-custom" onchange="toggleCargoCheckbox(this)">
+                                            </th>
                                             <th>Candidato</th>
                                             <th>Inscrição</th>
                                             <th>Situação</th>
@@ -71,7 +83,30 @@
                                     <tbody>
                                         {% for candidato in lista_de_candidatos %}
                                         <tr>
-                                            <td>{{ candidato.nome }}</td>
+                                            <td class="checkbox-col">
+                                                <input type="checkbox" 
+                                                       class="checkbox-custom candidato-select" 
+                                                       value="{{ candidato.id_candidato }}"
+                                                       data-nome="{{ candidato.nome }}"
+                                                       data-info='{{ candidato|tojson }}'
+                                                       onchange="atualizarBarraFlutuante()">
+                                            </td>
+                                            <td>
+                                                {{ candidato.nome }}
+                                                {# Lógica para verificar dados faltantes #}
+                                                {% set faltantes = [] %}
+                                                {% if not candidato.data_posse %}{% set _ = faltantes.append('Data de Posse') %}{% endif %}
+                                                {% if not candidato.portaria %}{% set _ = faltantes.append('Portaria') %}{% endif %}
+                                                {% if not candidato.lotacao %}{% set _ = faltantes.append('Lotação') %}{% endif %}
+
+                                                {# Se houver itens na lista de faltantes, exibe o ícone #}
+                                                {% if faltantes %}
+                                                    <i class="fas fa-exclamation-circle" 
+                                                        style="color: #dc2626; margin-left: 8px; cursor: help;" 
+                                                        title="Dados faltantes: {{ faltantes|join(', ') }}">
+                                                    </i>
+                                                {% endif %}
+                                            </td>
                                             <td>{{ candidato.numero_inscricao }}</td>
                                             <td>
                                                 {% if candidato.situacao == 'empossado' %}
@@ -81,16 +116,11 @@
                                                 {% endif %}
                                             </td>
                                             <td class="actions">
-                                                <form action="{{ url_for('certificado.gerar_certificado_individual', id_candidato=candidato.id_candidato) }}" method="POST" class="form-emitir-individual">
-                                                    <input type="hidden" name="reitor" value="{{ default_reitor or '' }}">
-                                                    <input type="hidden" name="local" value="{{ default_local or '' }}">
-                                                    
-                                                    <button type="button" class="btn btn-primary" style="padding: 0.5rem 1rem;" 
-                                                            data-candidato='{{ candidato|tojson }}'
-                                                            onclick="openConfirmacaoModal(this)">
-                                                        Emitir
-                                                    </button>
-                                                </form>
+                                                <button type="button" class="btn btn-primary" style="padding: 0.5rem 1rem;" 
+                                                        data-candidato='{{ candidato|tojson }}'
+                                                        onclick="openConfirmacaoIndividual(this)">
+                                                    Emitir
+                                                </button>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -100,12 +130,22 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum candidato (nomeado ou empossado) encontrado para este edital.</p></div>
+                        <div class="empty-state" style="margin: 1.5rem;"><p>Nenhum candidato (nomeado ou empossado) encontrado.</p></div>
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
         </main>
+    </div>
+
+    <div class="bulk-action-bar" id="bulkActionBar">
+        <span><span id="selectedCount" class="count-badge">0</span> candidatos selecionados</span>
+        <button class="btn btn-primary" onclick="openConfirmacaoLote()">
+            <i class="fas fa-file-archive"></i> Gerar Selecionados (Lote)
+        </button>
+        <button class="btn btn-secondary" onclick="limparSelecao()" style="padding: 5px 10px;">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
 
     <div id="confirmacaoModal" class="modal">
@@ -115,173 +155,221 @@
                 <button class="icon-button" onclick="closeConfirmacaoModal()"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <p>Você está prestes a gerar os documentos (Posse e Apresentação) para:</p>
-                <h4 id="nome_candidato_confirm" style="margin: 1rem 0; font-size: 1.2rem; text-align: center;"></h4>
+                <p id="texto-confirmacao-intro">Você está prestes a gerar documentos para:</p>
                 
-                <p>Os documentos serão gerados usando os seguintes dados <strong>já salvos no candidato</strong>:</p>
-                <ul>
-                    <li><strong>Data de Posse:</strong> <span id="data_posse_confirm"></span></li>
-                    <li><strong>Portaria:</strong> <span id="portaria_confirm"></span></li>
-                    <li><strong>Lotação/Unidade:</strong> <span id="lotacao_confirm"></span></li>
-                    <li><strong>Código da Vaga:</strong> <span id="cod_vaga_confirm"></span></li>
-                </ul>
+                <h4 id="destaque-confirmacao" style="margin: 1rem 0; font-size: 1.2rem; text-align: center;"></h4>
+                
+                <div id="detalhes-individual" style="display: block;">
+                     <p>Dados do candidato:</p>
+                     <ul>
+                        <li><strong>Data de Posse:</strong> <span id="data_posse_confirm"></span></li>
+                        <li><strong>Portaria:</strong> <span id="portaria_confirm"></span></li>
+                        <li><strong>Lotação:</strong> <span id="lotacao_confirm"></span></li>
+                     </ul>
+                </div>
+
                 <hr style="margin: 1rem 0;">
-                <p>Os seguintes dados (definidos como padrão) serão usados:</p>
+                <p>Configurações Globais que serão usadas:</p>
                 <ul>
-                    <li><strong>Reitor:</strong> <span id="reitor_confirm">{{ default_reitor or 'NÃO DEFINIDO' }}</span></li>
-                    <li><strong>Local da Posse:</strong> <span id="local_confirm">{{ default_local or 'NÃO DEFINIDO' }}</span></li>
+                    <li><strong>Reitor:</strong> <span class="conf-reitor-display">{{ default_reitor or 'NÃO DEFINIDO' }}</span></li>
+                    <li><strong>Local:</strong> <span class="conf-local-display">{{ default_local or 'NÃO DEFINIDO' }}</span></li>
                 </ul>
                 
-                <div id="confirmacao-erro" class="alert alert-error" style="display: none; margin-top: 1rem;">
-                    </div>
+                <div id="confirmacao-erro" class="alert alert-error" style="display: none; margin-top: 1rem;"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeConfirmacaoModal()">Cancelar</button>
-                <button type="button" id="btnConfirmarEmissao" class="btn btn-primary" onclick="submitFormularioIndividual()">Gerar Documentos</button>
+                
+                <form id="form-individual-submit" method="POST" style="display: none;">
+                    <input type="hidden" name="reitor" class="input-reitor">
+                    <input type="hidden" name="local" class="input-local">
+                </form>
+
+                <button type="button" id="btnConfirmarEmissao" class="btn btn-primary" onclick="submitEmissao()">Gerar Documentos</button>
             </div>
         </div>
     </div>
     
     <script>
-    // ======================================================
-    // ALTERAÇÃO AQUI: Listener de Eventos Simplificado
-    // ======================================================
+    // Valores Padrão do Servidor
+    const DEFAULT_REITOR = "{{ default_reitor or '' }}";
+    const DEFAULT_LOCAL = "{{ default_local or '' }}";
+    let MODO_ATUAL = 'individual'; // 'individual' ou 'lote'
+
     document.addEventListener('DOMContentLoaded', () => {
-        
-        // --- Listener para abrir/fechar seções (Edital e Cargo) ---
+        // Collapsible
         document.querySelectorAll('.js-toggle-trigger').forEach(trigger => {
             trigger.addEventListener('click', function(event) {
-                // Impede que o clique no header do cargo feche o card do edital
                 event.stopPropagation(); 
-                
                 const targetId = this.dataset.target;
                 const body = document.getElementById(targetId);
                 if (body) {
                     body.classList.toggle('active');
-                    this.classList.toggle('active'); // Adiciona/remove 'active' do header também
+                    this.classList.toggle('active');
                 }
             });
         });
-
-        // --- Listener para o botão "Emitir Lote" REMOVIDO ---
-
-        // --- Auto-fechar Alertas (Flash Messages) ---
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(function(alert) {
-            setTimeout(function() {
-                alert.style.transition = 'opacity 0.5s ease';
-                alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.style.display = 'none';
-                }, 500);
-            }, 5000);
-        });
+        setTimeout(() => {
+        document.querySelectorAll('.alert:not(#confirmacao-erro)').forEach(el => el.style.display = 'none');
+    }, 5000);
     });
-    // ======================================================
-    // FIM DA ALTERAÇÃO
-    // ======================================================
 
-    // --- JAVASCRIPT MODAL DE CONFIRMAÇÃO INDIVIDUAL ---
-    const confirmacaoModal = document.getElementById('confirmacaoModal');
-    let formParaSubmeter = null; 
-
-    function openConfirmacaoModal(button) {
-        formParaSubmeter = button.closest('.form-emitir-individual');
-        const candidato = JSON.parse(button.dataset.candidato);
+    // --- Lógica de Seleção (Checkboxes) ---
+    function atualizarBarraFlutuante() {
+        const selecionados = document.querySelectorAll('.candidato-select:checked').length;
+        const barra = document.getElementById('bulkActionBar');
+        const contador = document.getElementById('selectedCount');
         
-        let podeGerar = true;
-        let erroBase = `
-            <strong>Erro:</strong> Não é possível gerar documentos. 
-            Por favor, vá à tela de "Gerenciamento de Editais" e preencha os seguintes dados do candidato:
-        `;
-        let errosDetalhados = [];
-
-        document.getElementById('nome_candidato_confirm').innerText = candidato.nome;
+        contador.innerText = selecionados;
         
-        const dataPosse = candidato.data_posse || "PENDENTE";
-        document.getElementById('data_posse_confirm').innerText = dataPosse;
-        if (dataPosse === "PENDENTE") {
-            podeGerar = false;
-            errosDetalhados.push("Data da Posse");
-        }
-        
-        const portaria = candidato.portaria || "PENDENTE";
-        document.getElementById('portaria_confirm').innerText = portaria;
-        if (portaria === "PENDENTE") {
-            podeGerar = false;
-            errosDetalhados.push("Portaria");
-        }
-        
-        const lotacao = candidato.lotacao || "PENDENTE";
-        document.getElementById('lotacao_confirm').innerText = lotacao;
-        if (lotacao === "PENDENTE") {
-            podeGerar = false;
-            errosDetalhados.push("Lotação/Unidade");
-        }
-        
-        document.getElementById('cod_vaga_confirm').innerText = candidato.cod_vaga || "Nenhum";
-        
-        const reitor = document.getElementById('reitor_confirm').innerText;
-        const local = document.getElementById('local_confirm').innerText;
-        
-        if (reitor === 'NÃO DEFINIDO' || local === 'NÃO DEFINIDO') {
-            podeGerar = false;
-            erroBase = `
-                <strong>Erro:</strong> Faltam dados de Configuração. 
-                Por favor, vá em "Configurações" e defina um Reitor e um Local como Padrão.
-            `;
-            errosDetalhados = []; 
-        }
-
-        const btnConfirmar = document.getElementById('btnConfirmarEmissao');
-        const msgErro = document.getElementById('confirmacao-erro');
-        
-        if (podeGerar) {
-            msgErro.style.display = 'none';
-            btnConfirmar.disabled = false;
+        if (selecionados > 0) {
+            barra.classList.add('active');
         } else {
-            if(errosDetalhados.length > 0) {
-                 msgErro.innerHTML = erroBase + " <strong>(" + errosDetalhados.join(', ') + ")</strong>";
-            } else {
-                msgErro.innerHTML = erroBase;
-            }
+            barra.classList.remove('active');
+        }
+    }
+
+    function toggleCargoCheckbox(source) {
+        // Seleciona/Desseleciona todos na tabela do cargo atual
+        const table = source.closest('table');
+        const checkboxes = table.querySelectorAll('.candidato-select');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        atualizarBarraFlutuante();
+    }
+
+    function selecionarTodosEdital(btn) {
+        // Acha o container do edital
+        const card = btn.closest('.edital-card');
+        // Acha todos os checkboxes dentro dele
+        const checkboxes = card.querySelectorAll('.candidato-select');
+        const checkboxesCargo = card.querySelectorAll('.checkbox-custom:not(.candidato-select)'); // Headers de tabela
+        
+        // Verifica se tem algum desmarcado para decidir se marca tudo ou desmarca tudo
+        let algumDesmarcado = false;
+        checkboxes.forEach(cb => { if(!cb.checked) algumDesmarcado = true; });
+
+        checkboxes.forEach(cb => cb.checked = algumDesmarcado);
+        checkboxesCargo.forEach(cb => cb.checked = algumDesmarcado);
+        
+        atualizarBarraFlutuante();
+    }
+
+    function limparSelecao() {
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        atualizarBarraFlutuante();
+    }
+
+    // --- Lógica do Modal ---
+    const confirmacaoModal = document.getElementById('confirmacaoModal');
+    const btnConfirmar = document.getElementById('btnConfirmarEmissao');
+    const msgErro = document.getElementById('confirmacao-erro');
+
+    function checkConfiguracao() {
+        if (!DEFAULT_REITOR || !DEFAULT_LOCAL) {
             msgErro.style.display = 'block';
+            msgErro.innerHTML = '<strong>Erro:</strong> Reitor ou Local padrão não definidos em "Configurações".';
+            btnConfirmar.disabled = true;
+            return false;
+        }
+        return true;
+    }
+
+    function openConfirmacaoIndividual(btn) {
+        MODO_ATUAL = 'individual';
+        const candidato = JSON.parse(btn.dataset.candidato);
+        const formIndividual = document.getElementById('form-individual-submit');
+        
+        // Configura Visual
+        document.getElementById('confirmacaoModalTitle').innerText = "Confirmar Emissão Individual";
+        document.getElementById('destaque-confirmacao').innerText = candidato.nome;
+        document.getElementById('detalhes-individual').style.display = 'block';
+        
+        // Preenche dados visualização
+        document.getElementById('data_posse_confirm').innerText = candidato.data_posse || "PENDENTE";
+        document.getElementById('portaria_confirm').innerText = candidato.portaria || "PENDENTE";
+        document.getElementById('lotacao_confirm').innerText = candidato.lotacao || "PENDENTE";
+
+        // Preenche Form Oculto
+        formIndividual.action = `/certificados/gerar/individual/${candidato.id_candidato}`;
+        formIndividual.querySelector('.input-reitor').value = DEFAULT_REITOR;
+        formIndividual.querySelector('.input-local').value = DEFAULT_LOCAL;
+
+        // Validações
+        msgErro.style.display = 'none';
+        btnConfirmar.disabled = false;
+        
+        if (!checkConfiguracao()) return confirmacaoModal.classList.add('active');
+        
+        if (!candidato.data_posse || !candidato.portaria || !candidato.lotacao) {
+            msgErro.style.display = 'block';
+            msgErro.innerHTML = '<strong>Erro:</strong> Dados do candidato incompletos (Data Posse, Portaria ou Lotação).';
             btnConfirmar.disabled = true;
         }
-        
+
         confirmacaoModal.classList.add('active');
+    }
+
+    function openConfirmacaoLote() {
+        MODO_ATUAL = 'lote';
+        const checkboxes = document.querySelectorAll('.candidato-select:checked');
+        
+        document.getElementById('confirmacaoModalTitle').innerText = "Confirmar Emissão em Lote";
+        document.getElementById('destaque-confirmacao').innerText = `${checkboxes.length} Candidatos Selecionados`;
+        document.getElementById('detalhes-individual').style.display = 'none'; // Esconde detalhes específicos
+
+        // Preenche o Form de Lote
+        const container = document.getElementById('inputs-container');
+        container.innerHTML = ''; // Limpa anteriores
+        let temErroDados = false;
+
+        checkboxes.forEach(cb => {
+            // Cria input hidden para cada ID
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'candidatos_ids';
+            input.value = cb.value;
+            container.appendChild(input);
+
+            // Verificação rápida de integridade (opcional, mas bom para UX)
+            const info = JSON.parse(cb.dataset.info);
+            if(!info.data_posse || !info.portaria) temErroDados = true;
+        });
+
+        document.getElementById('lote_reitor').value = DEFAULT_REITOR;
+        document.getElementById('lote_local').value = DEFAULT_LOCAL;
+
+        // Validações
+        msgErro.style.display = 'none';
+        btnConfirmar.disabled = false;
+
+        if (!checkConfiguracao()) return confirmacaoModal.classList.add('active');
+
+        if (temErroDados) {
+            msgErro.style.display = 'block';
+            msgErro.innerHTML = '<strong>Aviso:</strong> Alguns candidatos selecionados parecem ter dados incompletos. O sistema tentará gerar para todos, mas ignorará os inválidos.';
+            // Não desabilita o botão, permite tentar
+        }
+
+        confirmacaoModal.classList.add('active');
+    }
+
+    function submitEmissao() {
+        if (MODO_ATUAL === 'individual') {
+            document.getElementById('form-individual-submit').submit();
+        } else {
+            document.getElementById('form-lote').submit();
+        }
+        closeConfirmacaoModal();
     }
 
     function closeConfirmacaoModal() {
         confirmacaoModal.classList.remove('active');
-        formParaSubmeter = null; 
     }
 
-    function submitFormularioIndividual() {
-        if (formParaSubmeter) {
-            formParaSubmeter.submit();
-        }
-        closeConfirmacaoModal();
-    }
-    
-    // ======================================================
-    // JAVASCRIPT DO MODAL DE LOTE REMOVIDO
-    // ======================================================
-    // const loteSelecionadosModal = ...
-    // function abrirModalLote(...) { ... }
-    // function openLoteSelecionadosModal(...) { ... }
-    // function closeLoteSelecionadosModal(...) { ... }
-    // checkboxSelecionarTodosLote.addEventListener(...)
-    // ======================================================
-
-    // Fechar os modais se o usuário clicar fora deles
     window.onclick = function(event) {
-        if (event.target == confirmacaoModal) {
-            closeConfirmacaoModal();
-        }
-        // Listener para o modal de lote removido
+        if (event.target == confirmacaoModal) closeConfirmacaoModal();
     }
-</script>
+    </script>
 
 </body>
 </html>

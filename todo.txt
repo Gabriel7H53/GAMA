@@ -9,7 +9,7 @@ Entrada em Exercicio(OK)
 Mudança de Gestor para Reitor (ok)
 Data de Emissão/Nomeação : 2 pra um e deixar apenas Data de Posse que deve ser cadastrado após concluir pericia (Ok)
 
-CONTROLE DE DOCUMENTOS
+CONTROLE DE DOCUMENTOS (OK)
     EDITAL 
         CANDIDATOS (APENAS NOMEADOS)
             Nome, Contatado (Sim ou Não), Entrega de Documentos (Agendar (Aparece tela para selecionar data e hora), Agendado, Entregue), Perícia (Agendar (Aparece tela para selecionar data e hora), Agendado, Concluida)
@@ -22,24 +22,70 @@ CONTROLE DE DOCUMENTOS
 adicionar no editar candidado (portaria, lotação (lista)) (OK)
 mudar o nomear em lote para -> empossar varias pessoas coletivamente na mesma data -> empossar em lote (OK)
 mudar tela de agendamento para ser uma tela de controle (OK)
-
+Adicionar toda a lógica referente ao codigo de vaga e controle de vaga  (OK)
+adicionar emissão coletiva de termo de posse ja emitindo o termo de apresentação ( travar se tiver algum dado faltando, e exibir oq esta faltando) (OK)
+se possivel encontrar alguma maneira de avisar que o candidato esta com dados incompletos por exemplo sem lotação, portaria, codigo de vaga (OK)
 
 
 Mudança de Tela Que Fica fechando pra deixar aberta
 Lock/Cargo e Padrão de Vencimento
-
-Adicionar toda a lógica referente ao codigo de vaga e controle de vaga 
-
-adicionar emissão coletiva de termo de posse ja emitindo o termo de apresentação ( travar se tiver algum dado faltando, e exibir oq esta faltando)
-se possivel encontrar alguma maneira de avisar que o candidato esta com dados incompletos por exemplo sem lotação, portaria, codigo de vaga 
 adicionar lógica para puxar a ultima portaria cadastrada para a proxima nomeação
+Corrigir numeral para posse no dia um
+
 
 Termo de Posse Coletivo
-
-
 Adicionar tipo do Edital - Técnico/Docente (String)
 Termo Posse Professor
 Adicionar Situação - Final de Fila/Empossado (Complexo)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
