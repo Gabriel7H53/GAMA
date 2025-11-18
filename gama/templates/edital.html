@@ -233,7 +233,7 @@
                             <input type="date" id="data_posse" name="data_posse">
                             <small class="form-help">Preencha apenas se a situação for "Nomeado" ou "Empossado".</small>
                         </div>
-                         <div class="form-check-group" style="padding-top: 1.5rem;"> <div class="form-check">
+                        <div style="margin-top: 13px;"> <div class="form-check">
                                 <input type="checkbox" id="pcd" name="pcd"><label for="pcd">Candidato PCD</label>
                             </div>
                             <div class="form-check">
@@ -262,7 +262,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="cod_vaga" class="form-label">Código de Vaga (Opcional)</label>
+                        <label for="cod_vaga" class="form-label">Código de Vaga</label>
                         <select id="cod_vaga" name="cod_vaga" class="form-input">
                             <option value="">-- Nenhuma Vaga Vinculada --</option>
                             <optgroup label="Vagas Livres">
@@ -406,75 +406,93 @@
         // --- Modal Candidato ---
         const candidatoModal = document.getElementById('candidatoModal');
         const candidatoForm = document.getElementById('candidatoForm');
-        // ======================================================
-        // ALTERAÇÃO AQUI: JavaScript do Modal Candidato
-        // ======================================================
+        
         function openCandidatoModal(buttonElement, id_edital_for_new = null) {
-            candidatoForm.reset(); 
-            
-            // Limpa opções de vaga dinâmicas
-            const vagaSelect = document.getElementById('cod_vaga');
-            const oldOption = vagaSelect.querySelector('option[data-ocupada="true"]');
-            if (oldOption) {
-                oldOption.remove();
-            }
-
-            if (!buttonElement) { 
-                document.getElementById('candidatoModalTitle').innerText = 'Adicionar Candidato';
-                document.getElementById('id_edital_hidden_candidato').value = id_edital_for_new; 
-                candidatoForm.action = `/edital/${id_edital_for_new}/candidato/adicionar`; 
-                document.getElementById('id_candidato').value = ''; 
-            } else { 
-                const candidato = JSON.parse(buttonElement.getAttribute('data-candidato'));
-                document.getElementById('candidatoModalTitle').innerText = 'Editar Candidato';
-                candidatoForm.action = `/edital/candidato/editar/${candidato[0]}`; 
+            try {
+                candidatoForm.reset(); 
                 
-                document.getElementById('id_edital_hidden_candidato').value = candidato[10]; 
-                document.getElementById('id_candidato').value = candidato[0]; 
-                document.getElementById('nome').value = candidato[1];
-                document.getElementById('numero_inscricao').value = candidato[2];
-                document.getElementById('nota').value = candidato[3];
-                document.getElementById('classificacao').value = candidato[5];
-                document.getElementById('pcd').checked = candidato[6];
-                document.getElementById('cotista').checked = candidato[7];
-                document.getElementById('situacao').value = candidato[8];
-                document.getElementById('data_posse').value = candidato[9] || '';
-                document.getElementById('nome_cargo').value = candidato[11]; 
-                document.getElementById('padrao_vencimento').value = candidato[12] || '';
-                document.getElementById('portaria').value = candidato[13] || ''; 
-                document.getElementById('lotacao').value = candidato[14] || '';
-                document.getElementById('contatado').checked = candidato[15];
-                
-                // Novo: Preenche o Código de Vaga (índice 16)
-                const cod_vaga_candidato = candidato[16];
-                if (cod_vaga_candidato) {
-                    // Verifica se a vaga já está na lista de "livres"
-                    let vagaNaLista = false;
-                    for (let option of vagaSelect.options) {
-                        if (option.value === cod_vaga_candidato) {
-                            vagaNaLista = true;
-                            break;
-                        }
-                    }
-                    // Se não estiver (porque está ocupada por este candidato), adiciona
-                    if (!vagaNaLista) {
-                        const option = document.createElement('option');
-                        option.value = cod_vaga_candidato;
-                        option.text = `${cod_vaga_candidato} (Vaga Atual)`;
-                        option.dataset.ocupada = "true"; // Marca para remoção
-                        // Adiciona no topo, logo após a opção vazia
-                        vagaSelect.add(option, vagaSelect.options[1]);
-                    }
-                    vagaSelect.value = cod_vaga_candidato;
-                } else {
-                    vagaSelect.value = ""; // Nenhuma vaga
+                // 1. Limpa opções de vaga dinâmicas antigas (se houver)
+                const vagaSelect = document.getElementById('cod_vaga');
+                const oldOption = vagaSelect.querySelector('option[data-ocupada="true"]');
+                if (oldOption) {
+                    oldOption.remove();
                 }
+
+                if (!buttonElement) { 
+                    // --- MODO ADICIONAR ---
+                    document.getElementById('candidatoModalTitle').innerText = 'Adicionar Candidato';
+                    document.getElementById('id_edital_hidden_candidato').value = id_edital_for_new; 
+                    candidatoForm.action = `/edital/${id_edital_for_new}/candidato/adicionar`; 
+                    document.getElementById('id_candidato').value = ''; 
+                    // Reseta o select para vazio
+                    vagaSelect.value = "";
+                } else { 
+                    // --- MODO EDITAR ---
+                    const candidato = JSON.parse(buttonElement.getAttribute('data-candidato'));
+                    document.getElementById('candidatoModalTitle').innerText = 'Editar Candidato';
+                    candidatoForm.action = `/edital/candidato/editar/${candidato[0]}`; 
+                    
+                    // Preenche campos básicos
+                    document.getElementById('id_edital_hidden_candidato').value = candidato[10]; 
+                    document.getElementById('id_candidato').value = candidato[0]; 
+                    document.getElementById('nome').value = candidato[1];
+                    document.getElementById('numero_inscricao').value = candidato[2];
+                    document.getElementById('nota').value = candidato[3];
+                    document.getElementById('classificacao').value = candidato[5];
+                    document.getElementById('pcd').checked = candidato[6];
+                    document.getElementById('cotista').checked = candidato[7];
+                    document.getElementById('situacao').value = candidato[8];
+                    document.getElementById('data_posse').value = candidato[9] || '';
+                    document.getElementById('nome_cargo').value = candidato[11]; 
+                    document.getElementById('padrao_vencimento').value = candidato[12] || '';
+                    document.getElementById('portaria').value = candidato[13] || ''; 
+                    document.getElementById('lotacao').value = candidato[14] || '';
+                    document.getElementById('contatado').checked = candidato[15];
+                    
+                    // --- LÓGICA ROBUSTA PARA CÓDIGO DE VAGA ---
+                    const cod_vaga_candidato = candidato[16];
+                    
+                    if (cod_vaga_candidato) {
+                        const codVagaStr = String(cod_vaga_candidato); // Garante que é string para comparação
+                        let vagaNaLista = false;
+                        
+                        // Verifica se a vaga já existe na lista (comparando strings)
+                        for (let i = 0; i < vagaSelect.options.length; i++) {
+                            if (vagaSelect.options[i].value === codVagaStr) {
+                                vagaNaLista = true;
+                                break;
+                            }
+                        }
+                        
+                        // Se não estiver na lista (porque está ocupada), cria a opção visualmente
+                        if (!vagaNaLista) {
+                            const option = document.createElement('option');
+                            option.value = codVagaStr;
+                            const nomeCargoVaga = candidato[17] || '(Vaga Atual)';
+                            
+                            option.text = `${codVagaStr} - ${nomeCargoVaga}`; 
+                            // ----------------------
+                            
+                            option.dataset.ocupada = "true";
+                            
+                            if (vagaSelect.options.length > 1) {
+                                vagaSelect.add(option, 1); 
+                            } else {
+                                vagaSelect.add(option); 
+                            }
+                        }
+                        // Define o valor
+                        vagaSelect.value = codVagaStr;
+                    } else {
+                        vagaSelect.value = ""; // Nenhuma vaga
+                    }
+                }
+                candidatoModal.classList.add('active'); 
+            } catch (error) {
+                console.error("Erro ao abrir modal de candidato:", error);
+                alert("Ocorreu um erro ao tentar abrir a edição deste candidato. Verifique o console para mais detalhes.");
             }
-            candidatoModal.classList.add('active'); 
         }
-        // ======================================================
-        // FIM DA ALTERAÇÃO
-        // ======================================================
         
         function closeCandidatoModal() {
             candidatoModal.classList.remove('active'); 
@@ -640,6 +658,28 @@
                     }, 500); 
                 }, 3000); 
             });
+            const idEditalParaAbrir = "{{ request.args.get('open') }}";
+            
+            if (idEditalParaAbrir) {
+            const bodyId = `body-edital-${idEditalParaAbrir}`;
+            const bodyElement = document.getElementById(bodyId);
+            
+            if (bodyElement) {
+                // Abre o corpo do edital
+                bodyElement.classList.add('active');
+                
+                // Acha o cabeçalho para marcar como ativo também (seta girada)
+                const headerElement = bodyElement.previousElementSibling;
+                if (headerElement) {
+                    headerElement.classList.add('active');
+                    
+                    // Opcional: Rolar a tela suavemente até este edital
+                    setTimeout(() => {
+                        headerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                }
+            }
+        }
         });
     </script>
 </body>

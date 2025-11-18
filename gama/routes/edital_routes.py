@@ -173,7 +173,7 @@ def adicionar_candidato(id_edital):
     # -----------------------------------------------
 
     flash(message, 'success' if success else 'error')
-    return redirect(url_for('edital.painel'))
+    return redirect(url_for('edital.painel', open=id_edital))
 
 
 @edital_bp.route('/candidato/editar/<int:id_candidato>', methods=['POST'])
@@ -226,28 +226,29 @@ def editar_candidato(id_candidato):
     # --------------------------------------
 
     flash(message, 'success' if success else 'error')
-    return redirect(url_for('edital.painel'))
+    return redirect(url_for('edital.painel', open=id_edital))
 
 
 @edital_bp.route('/candidato/remover/<int:id_candidato>', methods=['POST'])
 def remover_candidato(id_candidato):
     if not check_admin():
         return redirect(url_for('auth.login'))
-        
-    # --- NOVO: Verifica se o candidato ocupava uma vaga ---
+    
     candidato = Candidato.get_by_id(id_candidato)
-    cod_vaga = candidato['cod_vaga'] if candidato else None
-    # ----------------------------------------------------
+    id_edital_destino = candidato['id_edital'] if candidato else None
 
     success, message = Candidato.delete(id_candidato)
     
-    # --- NOVO: Libera a vaga se a exclusão funcionou ---
-    if success and cod_vaga:
-        Vaga.desocupar_por_codigo(cod_vaga)
-    # ---------------------------------------------------
+    if success and candidato and candidato['cod_vaga']:
+        from gama.models.vaga import Vaga # Importação local para evitar ciclo
+        Vaga.desocupar_por_codigo(candidato['cod_vaga'])
 
     flash(message, 'success' if success else 'error')
-    return redirect(url_for('edital.painel'))
+    
+    if id_edital_destino:
+        return redirect(url_for('edital.painel', open=id_edital_destino))
+    else:
+        return redirect(url_for('edital.painel'))
 
 @edital_bp.route('/<int:id_edital>/candidato/adicionar_lote', methods=['POST'])
 def adicionar_lote(id_edital):

@@ -98,7 +98,8 @@
                                                 {% if not candidato.data_posse %}{% set _ = faltantes.append('Data de Posse') %}{% endif %}
                                                 {% if not candidato.portaria %}{% set _ = faltantes.append('Portaria') %}{% endif %}
                                                 {% if not candidato.lotacao %}{% set _ = faltantes.append('Lotação') %}{% endif %}
-
+                                                {% if not candidato.cod_vaga %}{% set _ = faltantes.append('Código de Vaga') %}{% endif %}
+                                                
                                                 {# Se houver itens na lista de faltantes, exibe o ícone #}
                                                 {% if faltantes %}
                                                     <i class="fas fa-exclamation-circle" 
@@ -165,6 +166,7 @@
                         <li><strong>Data de Posse:</strong> <span id="data_posse_confirm"></span></li>
                         <li><strong>Portaria:</strong> <span id="portaria_confirm"></span></li>
                         <li><strong>Lotação:</strong> <span id="lotacao_confirm"></span></li>
+                        <li><strong>Cód. Vaga:</strong> <span id="cod_vaga_confirm_modal"></span></li>
                      </ul>
                 </div>
 
@@ -288,6 +290,7 @@
         document.getElementById('data_posse_confirm').innerText = candidato.data_posse || "PENDENTE";
         document.getElementById('portaria_confirm').innerText = candidato.portaria || "PENDENTE";
         document.getElementById('lotacao_confirm').innerText = candidato.lotacao || "PENDENTE";
+        document.getElementById('cod_vaga_confirm_modal').innerText = candidato.cod_vaga || "PENDENTE";
 
         // Preenche Form Oculto
         formIndividual.action = `/certificados/gerar/individual/${candidato.id_candidato}`;
@@ -302,7 +305,7 @@
         
         if (!candidato.data_posse || !candidato.portaria || !candidato.lotacao) {
             msgErro.style.display = 'block';
-            msgErro.innerHTML = '<strong>Erro:</strong> Dados do candidato incompletos (Data Posse, Portaria ou Lotação).';
+            msgErro.innerHTML = '<strong>Erro:</strong> Dados do candidato incompletos (Data Posse, Portaria ou Lotação e Cód.Vaga).';
             btnConfirmar.disabled = true;
         }
 
@@ -332,7 +335,7 @@
 
             // Verificação rápida de integridade (opcional, mas bom para UX)
             const info = JSON.parse(cb.dataset.info);
-            if(!info.data_posse || !info.portaria) temErroDados = true;
+            if(!info.data_posse || !info.portaria || !info.lotacao || !info.cod_vaga) temErroDados = true;
         });
 
         document.getElementById('lote_reitor').value = DEFAULT_REITOR;

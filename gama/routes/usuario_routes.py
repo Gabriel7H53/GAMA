@@ -208,13 +208,17 @@ def criar_agendamento():
     except Exception as e:
         flash(f"Ocorreu um erro ao processar sua solicitação: {e}", "error")
 
-    return redirect(url_for('usuarios.agendamentos'))
+    return redirect(url_for('usuarios.agendamentos', open=id_edital))
 
 @usuario_bp.route('/agendamento/concluir_pericia/<int:id_agendamento>', methods=['POST'])
 def concluir_pericia(id_agendamento):
     if 'usuario_id' not in session:
         flash('Acesso negado.', 'error')
         return redirect(url_for('auth.login'))
+
+    # ALTERAÇÃO: Busca o agendamento para saber o ID do Edital
+    agendamento = Agendamento.get_by_id(id_agendamento)
+    id_edital = agendamento['id_edital'] if agendamento else None
 
     try:
         success, message = Agendamento.update_status(id_agendamento, 'concluido')
@@ -227,13 +231,18 @@ def concluir_pericia(id_agendamento):
     except Exception as e:
         flash(f"Ocorreu um erro ao atualizar o status: {e}", "error")
     
-    return redirect(url_for('usuarios.agendamentos'))
+    # Redireciona com open=...
+    return redirect(url_for('usuarios.agendamentos', open=id_edital))
 
 
 @usuario_bp.route('/agendamento/editar/<int:id_agendamento>', methods=['POST'])
 def editar_agendamento(id_agendamento):
     if 'usuario_id' not in session:
         return redirect(url_for('auth.login'))
+
+    # ALTERAÇÃO: Busca o agendamento antes de editar
+    agendamento = Agendamento.get_by_id(id_agendamento)
+    id_edital = agendamento['id_edital'] if agendamento else None
 
     try:
         nome_pessoa = request.form['nome_pessoa']
@@ -247,7 +256,7 @@ def editar_agendamento(id_agendamento):
     except Exception as e:
         flash(f"Ocorreu um erro ao editar: {e}", "error")
         
-    return redirect(url_for('usuarios.agendamentos'))
+    return redirect(url_for('usuarios.agendamentos', open=id_edital))
 
 
 @usuario_bp.route('/agendamento/remover/<int:id_agendamento>', methods=['POST'])
@@ -255,10 +264,14 @@ def remover_agendamento(id_agendamento):
     if 'usuario_id' not in session:
         return redirect(url_for('auth.login'))
 
+    # ALTERAÇÃO: Busca o agendamento ANTES de deletar
+    agendamento = Agendamento.get_by_id(id_agendamento)
+    id_edital = agendamento['id_edital'] if agendamento else None
+
     success, message = Agendamento.delete(id_agendamento)
     flash(message, 'success' if success else 'error')
     
-    return redirect(url_for('usuarios.agendamentos'))
+    return redirect(url_for('usuarios.agendamentos', open=id_edital))
 
 @usuario_bp.route('/candidato/toggle_contatado', methods=['POST'])
 def toggle_contatado():

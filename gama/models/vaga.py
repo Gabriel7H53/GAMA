@@ -366,3 +366,37 @@ class Vaga:
             conn.close()
         
         return cargos_criados, vagas_criadas_atualizadas, erros
+    
+class HistoricoVaga:
+    @staticmethod
+    def create(id_vaga, usuario_responsavel, descricao):
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO HistoricoVaga (id_vaga, usuario_responsavel, descricao, data_hora)
+                VALUES (?, ?, ?, datetime('now', 'localtime'))
+            """, (id_vaga, usuario_responsavel, descricao))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao criar histórico: {e}")
+            return False
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_by_vaga(id_vaga):
+        conn = conectar()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT * FROM HistoricoVaga 
+                WHERE id_vaga = ? 
+                ORDER BY data_hora DESC
+            """, (id_vaga,))
+            # Converte para lista de dicts para facilitar o JSON
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()

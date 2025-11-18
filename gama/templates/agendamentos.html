@@ -369,6 +369,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Código existente para fechar alertas...
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
             setTimeout(function() {
@@ -379,6 +380,31 @@
                 }, 500);
             }, 5000);
         });
+
+        // --- NOVO: LÓGICA PARA REABRIR O EDITAL ---
+        const idEditalParaAbrir = "{{ request.args.get('open') }}";
+
+        if (idEditalParaAbrir) {
+            const bodyId = `body-edital-${idEditalParaAbrir}`;
+            const bodyElement = document.getElementById(bodyId);
+            
+            if (bodyElement) {
+                // Abre o corpo do edital
+                bodyElement.classList.add('active');
+                
+                // Marca o cabeçalho como ativo (para girar a setinha, se houver CSS pra isso)
+                const headerElement = bodyElement.previousElementSibling;
+                if (headerElement) {
+                    headerElement.classList.add('active');
+                    
+                    // Rola suavemente até o edital
+                    setTimeout(() => {
+                        headerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                }
+            }
+        }
+        // ------------------------------------------
     });
 </script>
 </body>

@@ -29,8 +29,10 @@ se possivel encontrar alguma maneira de avisar que o candidato esta com dados in
 
 Mudança de Tela Que Fica fechando pra deixar aberta
 Lock/Cargo e Padrão de Vencimento
-adicionar lógica para puxar a ultima portaria cadastrada para a proxima nomeação
+adicionar lógica para puxar a ultima portaria cadastrada para a proxima nomeação (deve ficar ligada ao cargo ou ao edital, todas portarias sao diferentes?)
 Corrigir numeral para posse no dia um
+Adicionar um histórico em cada codigo de vaga contendo, qual usuario fez a mudança e o que mudou exemplo Gabriel Viana - Ocupação da Vaga (X) -> Ocupação da Vaga(Y), Observação (X) -> (Y) esse histórico podera ser vizualizado ao clicar em Editar Vaga
+
 
 
 Termo de Posse Coletivo

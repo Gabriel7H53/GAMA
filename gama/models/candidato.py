@@ -35,7 +35,8 @@ class Candidato:
         conn = conectar()
         cursor = conn.cursor()
         try:
-            # ATUALIZADO: Query modificada para adicionar 'cand.cod_vaga' no final (índice 16)
+            # ATUALIZADO: Adicionado LEFT JOIN com Vaga e CargoGestao
+            # Nova coluna no índice 17: cg.nome_cargo (Nome do Cargo da Vaga)
             query = """
                 SELECT 
                     cand.id_candidato, cand.nome, cand.numero_inscricao, cand.nota, cand.id_cargo, 
@@ -44,9 +45,12 @@ class Candidato:
                     carg.nome_cargo, carg.padrao_vencimento,
                     cand.portaria, cand.lotacao,
                     cand.contatado,
-                    cand.cod_vaga
+                    cand.cod_vaga,
+                    cg.nome_cargo AS nome_cargo_vaga
                 FROM Candidato cand
                 JOIN Cargo carg ON cand.id_cargo = carg.id_cargo
+                LEFT JOIN Vaga v ON cand.cod_vaga = v.cod_vaga
+                LEFT JOIN CargoGestao cg ON v.cargo_gestao_id = cg.id
                 WHERE cand.id_edital = ? 
                 ORDER BY cand.classificacao ASC
             """
@@ -234,5 +238,39 @@ class Candidato:
             
             result = cursor.fetchone()
             return dict(result) if result else None
+        finally:
+            conn.close()
+
+    @staticmethod
+    def desvincular_vaga(cod_vaga):
+        """Remove o código da vaga de QUALQUER candidato que a possua."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE Candidato SET cod_vaga = NULL WHERE cod_vaga = ?", (cod_vaga,))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao desvincular vaga {cod_vaga}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    @staticmethod
+    def vincular_vaga(id_candidato, cod_vaga):
+        """Define o código da vaga para um candidato específico."""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            # Primeiro, garante que ninguém mais tenha essa vaga (regra 1:1)
+            cursor.execute("UPDATE Candidato SET cod_vaga = NULL WHERE cod_vaga = ?", (cod_vaga,))
+            
+            # Depois vincula ao candidato correto
+            cursor.execute("UPDATE Candidato SET cod_vaga = ? WHERE id_candidato = ?", (cod_vaga, id_candidato))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao vincular vaga {cod_vaga} ao candidato {id_candidato}: {e}")
+            return False
         finally:
             conn.close()

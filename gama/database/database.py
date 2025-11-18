@@ -118,6 +118,15 @@ def criar_tabelas():
         situacao TEXT NOT NULL CHECK (situacao IN ('Ativo', 'Inativo')),
         nivel TEXT NOT NULL CHECK (nivel IN ('D', 'E'))
     );
+                         
+    CREATE TABLE IF NOT EXISTS HistoricoVaga (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_vaga INTEGER NOT NULL,
+        usuario_responsavel TEXT NOT NULL, -- Nome do usuário que fez a alteração
+        descricao TEXT NOT NULL,           -- Ex: "Alterou ocupante de A para B"
+        data_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_vaga) REFERENCES Vaga(id) ON DELETE CASCADE
+    );
 
     CREATE TABLE IF NOT EXISTS Vaga (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -16,7 +16,6 @@ certificado_bp = Blueprint('certificado', __name__, template_folder='../template
 
 # --- FUNÇÃO AUXILIAR ---
 def numero_por_extenso(n):
-    """Converte um número (dia do mês, 1-31) para português por extenso."""
     unidades = {
         1: 'um', 2: 'dois', 3: 'três', 4: 'quatro', 5: 'cinco',
         6: 'seis', 7: 'sete', 8: 'oito', 9: 'nove', 10: 'dez',
@@ -26,11 +25,28 @@ def numero_por_extenso(n):
     dezenas = {
         20: 'vinte', 30: 'trinta'
     }
-    if n in unidades: return unidades[n]
-    if n in dezenas: return dezenas[n]
-    if 20 < n < 30: return f'vinte e {unidades[n-20]}'
-    if 30 < n < 40: return f'trinta e {unidades[n-30]}'
-    return str(n)
+    
+    texto_numero = ""
+
+    # 2. Lógica para obter o nome do número
+    if n in unidades:
+        texto_numero = unidades[n]
+    elif n in dezenas:
+        texto_numero = dezenas[n]
+    elif 20 < n < 30:
+        texto_numero = f"vinte e {unidades[n-20]}"
+    elif 30 < n <= 31:
+        texto_numero = f"trinta e {unidades[n-30]}"
+    else:
+        return str(n) # Fallback caso venha algo fora de 1-31
+
+    # 3. Formatação da frase final
+    if n == 1:
+        # Exceção gramatical para o dia 1 (Singular e Ordinal)
+        return "Ao primeiro dia do mês de"
+    else:
+        # Padrão para todos os outros dias (Plural)
+        return f"Aos {texto_numero} dias do mês de"
 
 # --- FUNÇÃO AUXILIAR DE GERAÇÃO (PARA USO INDIVIDUAL) ---
 def gerar_documentos_zip(candidato_id, reitor_nome, local_posse):

@@ -226,6 +226,13 @@
                     <button type="button" class="btn btn-primary" onclick="closeVagaModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar Vaga</button>
                 </div>
+                <div id="historico-wrapper" style="display: none;">
+                    <hr style="margin: 1.5rem 0;">
+                    <p style="font-weight: 500; margin-bottom: 0.5rem;">Histórico de Alterações</p>
+                    <div id="lista-historico" class="historico-container">
+                        <p style="color: #999; text-align: center;">Carregando...</p>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
@@ -299,9 +306,11 @@
     const inputManual = document.getElementById('ocupante_manual');
 
     function openVagaModal(cargo_id, cargo_nome, buttonElement) {
+        // 1. Reset inicial
         vagaForm.reset();
         document.getElementById('cargo_gestao_id').value = cargo_id;
         
+        // 2. Lógica do campo Área (Exibe apenas se o nome do cargo sugerir)
         const areaFieldGroup = document.getElementById('area_field_group');
         if (cargo_nome.includes('/ÁREA')) {
             areaFieldGroup.style.display = 'block';
@@ -309,17 +318,26 @@
             areaFieldGroup.style.display = 'none';
         }
 
-        if (buttonElement) { // Modo Editar
+        // 3. Elementos do Histórico
+        const historicoWrapper = document.getElementById('historico-wrapper');
+        const listaHistorico = document.getElementById('lista-historico');
+
+        if (buttonElement) { 
+            // --- MODO EDITAR ---
             const vaga = JSON.parse(buttonElement.getAttribute('data-vaga'));
+            
             document.getElementById('vagaModalTitle').innerText = 'Editar Vaga';
             vagaForm.action = `/vagas/vaga/editar/${vaga.id}`;
+            
             document.getElementById('id_vaga').value = vaga.id;
             document.getElementById('cod_vaga').value = vaga.cod_vaga;
             document.getElementById('area').value = vaga.area || '';
             document.getElementById('observacoes').value = vaga.observacoes || '';
             
+            // Lógica para preencher o Ocupante (Candidato vs Manual)
             let candidatoEncontrado = false;
             if (vaga.ocupante_atual) {
+                // Tenta achar o nome na lista de candidatos do sistema
                 for (let option of selectCandidatos.options) {
                     if (option.text.includes(vaga.ocupante_atual)) {
                         option.selected = true;
@@ -327,18 +345,63 @@
                         break;
                     }
                 }
+                // Se não achou na lista (é um ocupante antigo/externo), põe no manual
                 if (!candidatoEncontrado) {
                     inputManual.value = vaga.ocupante_atual;
                 }
             }
+
+            // --- CARREGAR E EXIBIR HISTÓRICO ---
+            historicoWrapper.style.display = 'block';
+            listaHistorico.innerHTML = '<p style="color: #999; text-align: center; padding: 10px;">Carregando histórico...</p>';
             
-        } else { // Modo Adicionar
+            fetch(`/vagas/api/historico/${vaga.id}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Erro na resposta da API");
+                    return response.json();
+                })
+                .then(data => {
+                    listaHistorico.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        listaHistorico.innerHTML = '<p style="color: #999; text-align: center; padding: 10px; font-style: italic;">Nenhum histórico registrado para esta vaga.</p>';
+                    } else {
+                        data.forEach(item => {
+                            // Formata a data (DD/MM/AAAA HH:MM)
+                            const dataObj = new Date(item.data_hora);
+                            const dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' ' + dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
+                            const div = document.createElement('div');
+                            div.className = 'historico-item';
+                            div.innerHTML = `
+                                <div class="hist-data">${dataFormatada}</div>
+                                <div style="flex-grow: 1;">
+                                    <span class="hist-user">${item.usuario_responsavel}:</span>
+                                    <span class="hist-desc">${item.descricao}</span>
+                                </div>
+                            `;
+                            listaHistorico.appendChild(div);
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error("Erro ao buscar histórico:", err);
+                    listaHistorico.innerHTML = '<p style="color: #dc2626; text-align: center; padding: 10px;">Não foi possível carregar o histórico.</p>';
+                });
+
+        } else { 
+            // --- MODO ADICIONAR ---
             document.getElementById('vagaModalTitle').innerText = 'Adicionar Nova Vaga';
             vagaForm.action = "{{ url_for('vaga.adicionar_vaga') }}";
             document.getElementById('id_vaga').value = '';
+            
+            // Esconde a seção de histórico pois a vaga é nova
+            historicoWrapper.style.display = 'none';
         }
+        
         vagaModal.classList.add('active');
     }
+    
     function closeVagaModal() {
         vagaModal.classList.remove('active');
     }
@@ -372,6 +435,29 @@
                 }, 500);
             }, 5000);
         });
+        const idCargoParaAbrir = "{{ request.args.get('open') }}";
+        
+        if (idCargoParaAbrir) {
+        const bodyId = `body-cargo-${idCargoParaAbrir}`;
+        const bodyElement = document.getElementById(bodyId);
+        
+        if (bodyElement) {
+            // Abre o corpo do cargo
+            bodyElement.classList.add('active');
+            
+            // Acha o cabeçalho para marcar como ativo também (para girar a setinha)
+            const headerElement = bodyElement.previousElementSibling;
+            if (headerElement) {
+                headerElement.classList.add('active');
+                
+                // Rola suavemente até o cargo
+                setTimeout(() => {
+                    headerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        }
+    }
+        
     });
 </script>
 </body>
