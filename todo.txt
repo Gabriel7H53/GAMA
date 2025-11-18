@@ -25,20 +25,21 @@ mudar tela de agendamento para ser uma tela de controle (OK)
 Adicionar toda a lógica referente ao codigo de vaga e controle de vaga  (OK)
 adicionar emissão coletiva de termo de posse ja emitindo o termo de apresentação ( travar se tiver algum dado faltando, e exibir oq esta faltando) (OK)
 se possivel encontrar alguma maneira de avisar que o candidato esta com dados incompletos por exemplo sem lotação, portaria, codigo de vaga (OK)
+Mudança de Tela Que Fica fechando pra deixar aberta (Relativamente OK)
+Lock/Cargo e Padrão de Vencimento (Necessario?)
+Corrigir numeral para posse no dia um (OK)
+Adicionar um histórico em cada codigo de vaga contendo, qual usuario fez a mudança e o que mudou exemplo Gabriel Viana - Ocupação da Vaga (X) -> Ocupação da Vaga(Y), Observação (X) -> (Y) esse histórico podera ser vizualizado ao clicar em Editar Vaga(OK)
 
 
-Mudança de Tela Que Fica fechando pra deixar aberta
-Lock/Cargo e Padrão de Vencimento
 adicionar lógica para puxar a ultima portaria cadastrada para a proxima nomeação (deve ficar ligada ao cargo ou ao edital, todas portarias sao diferentes?)
-Corrigir numeral para posse no dia um
-Adicionar um histórico em cada codigo de vaga contendo, qual usuario fez a mudança e o que mudou exemplo Gabriel Viana - Ocupação da Vaga (X) -> Ocupação da Vaga(Y), Observação (X) -> (Y) esse histórico podera ser vizualizado ao clicar em Editar Vaga
-
-
-
 Termo de Posse Coletivo
+
+
 Adicionar tipo do Edital - Técnico/Docente (String)
 Termo Posse Professor
+
 Adicionar Situação - Final de Fila/Empossado (Complexo)
+
 
 
 
