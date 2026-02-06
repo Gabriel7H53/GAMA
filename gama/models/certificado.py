@@ -1,5 +1,3 @@
-# Em gama/models/certificado.py (NOVO ARQUIVO)
-
 import sqlite3
 from gama.database.database import conectar
 import uuid
@@ -12,7 +10,6 @@ class Certificado:
         conn = conectar()
         cursor = conn.cursor()
         try:
-            # Gera um código de validação único
             codigo = str(uuid.uuid4())
             data_emissao = datetime.now()
 

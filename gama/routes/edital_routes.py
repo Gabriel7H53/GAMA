@@ -1,6 +1,6 @@
 # gama/routes/edital_routes.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
-from gama.models.edital import Edital, Cargo
+from gama.models.edital import Edital, Cargo, PortariaRascunho
 from gama.models.candidato import Candidato
 from gama.models.configuracao import Opcao 
 from gama.models.vaga import Vaga
@@ -54,6 +54,7 @@ def painel():
 
     opcoes_unidade = Opcao.get_por_tipo('unidade')
     vagas_livres = Vaga.get_all_vagas_livres()
+    rascunhos_portaria = PortariaRascunho.get_all_dict()
 
     return render_template(
         'edital.html', 
@@ -62,7 +63,8 @@ def painel():
         candidatos_por_edital_agrupado=candidatos_agrupados,
         candidatos_por_edital_simples=candidatos_simples,
         opcoes_unidade=opcoes_unidade,
-        vagas_livres=vagas_livres 
+        vagas_livres=vagas_livres,
+        rascunhos_portaria=rascunhos_portaria
     )
 
 @edital_bp.route('/adicionar', methods=['POST'])
@@ -154,6 +156,9 @@ def adicionar_candidato(id_edital):
     situacao = request.form['situacao']
     data_posse = request.form.get('data_posse')
     portaria = request.form.get('portaria')
+    if portaria:
+        PortariaRascunho.save(id_edital, portaria)
+
     lotacao = request.form.get('lotacao')
     contatado = 'contatado' in request.form
     
@@ -167,10 +172,8 @@ def adicionar_candidato(id_edital):
         portaria, lotacao, contatado, cod_vaga
     ) 
 
-    # --- NOVO: Atualiza a Vaga se foi selecionada ---
     if success and cod_vaga:
         Vaga.ocupar_por_codigo(cod_vaga, nome)
-    # -----------------------------------------------
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel', open=id_edital))
@@ -180,13 +183,9 @@ def adicionar_candidato(id_edital):
 def editar_candidato(id_candidato):
     if not check_admin():
         return redirect(url_for('auth.login'))
-
-    # --- NOVO: Busca dados ANTES da atualização para saber a vaga antiga ---
     candidato_antigo = Candidato.get_by_id(id_candidato)
     cod_vaga_antigo = candidato_antigo['cod_vaga'] if candidato_antigo else None
-    # ---------------------------------------------------------------------
-
-    id_edital = request.form['id_edital']
+    id_edital = int(request.form['id_edital'])
     nome_cargo = request.form['nome_cargo'].strip()
     padrao_vencimento = request.form['padrao_vencimento'] 
     id_cargo = Cargo.get_or_create(id_edital, nome_cargo, padrao_vencimento)
@@ -200,6 +199,9 @@ def editar_candidato(id_candidato):
     situacao = request.form['situacao']
     data_posse = request.form.get('data_posse') 
     portaria = request.form.get('portaria')
+    if portaria:
+        PortariaRascunho.save(id_edital, portaria)
+
     lotacao = request.form.get('lotacao')
     contatado = 'contatado' in request.form
     
@@ -213,17 +215,12 @@ def editar_candidato(id_candidato):
         portaria, lotacao, contatado, cod_vaga_novo
     ) 
 
-    # --- NOVO: Lógica de Troca de Vagas ---
     if success:
-        # 1. Se tinha vaga antes e mudou (ou removeu), libera a antiga
         if cod_vaga_antigo and cod_vaga_antigo != cod_vaga_novo:
             Vaga.desocupar_por_codigo(cod_vaga_antigo)
         
-        # 2. Se tem vaga nova (e é diferente da antiga ou apenas atualização de nome), ocupa a nova
         if cod_vaga_novo:
-            # Atualiza o ocupante (útil mesmo se a vaga for a mesma, caso o nome do candidato tenha mudado)
             Vaga.ocupar_por_codigo(cod_vaga_novo, nome)
-    # --------------------------------------
 
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel', open=id_edital))
@@ -240,7 +237,7 @@ def remover_candidato(id_candidato):
     success, message = Candidato.delete(id_candidato)
     
     if success and candidato and candidato['cod_vaga']:
-        from gama.models.vaga import Vaga # Importação local para evitar ciclo
+        from gama.models.vaga import Vaga 
         Vaga.desocupar_por_codigo(candidato['cod_vaga'])
 
     flash(message, 'success' if success else 'error')

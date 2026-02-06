@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from gama.database.database import verificar_login  # Certifique-se de que está no caminho correto.
+from gama.database.database import verificar_login
 
 auth_bp = Blueprint('auth', __name__, template_folder='../templates')
 

@@ -1,4 +1,3 @@
-# No topo de gama/models/candidato.py
 import sqlite3
 from gama.database.database import conectar
 from datetime import datetime
@@ -6,7 +5,6 @@ from datetime import datetime
 class Candidato:
     
     @staticmethod
-    # ATUALIZADO: Adicionado cod_vaga=None
     def create(id_edital, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None, contatado=False, cod_vaga=None):
         conn = conectar()
         cursor = conn.cursor()
@@ -35,8 +33,6 @@ class Candidato:
         conn = conectar()
         cursor = conn.cursor()
         try:
-            # ATUALIZADO: Adicionado LEFT JOIN com Vaga e CargoGestao
-            # Nova coluna no índice 17: cg.nome_cargo (Nome do Cargo da Vaga)
             query = """
                 SELECT 
                     cand.id_candidato, cand.nome, cand.numero_inscricao, cand.nota, cand.id_cargo, 
@@ -60,7 +56,6 @@ class Candidato:
             conn.close()
     
     @staticmethod
-    # ATUALIZADO: Adicionado cod_vaga
     def update(id_candidato, id_cargo, nome, inscricao, nota, classificacao, pcd, cotista, situacao, data_posse, portaria=None, lotacao=None, contatado=False, cod_vaga=None):
         conn = conectar()
         cursor = conn.cursor()
@@ -262,10 +257,7 @@ class Candidato:
         conn = conectar()
         cursor = conn.cursor()
         try:
-            # Primeiro, garante que ninguém mais tenha essa vaga (regra 1:1)
             cursor.execute("UPDATE Candidato SET cod_vaga = NULL WHERE cod_vaga = ?", (cod_vaga,))
-            
-            # Depois vincula ao candidato correto
             cursor.execute("UPDATE Candidato SET cod_vaga = ? WHERE id_candidato = ?", (cod_vaga, id_candidato))
             conn.commit()
             return True

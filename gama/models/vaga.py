@@ -1,4 +1,3 @@
-# gama/models/vaga.py
 import sqlite3
 from gama.database.database import conectar
 import pandas as pd
@@ -17,7 +16,7 @@ class CargoGestao:
             return cursor.lastrowid
         except sqlite3.IntegrityError:
             conn.rollback()
-            return None # Falha (código duplicado)
+            return None
         finally:
             conn.close()
 
@@ -73,7 +72,7 @@ class CargoGestao:
             return True
         except sqlite3.IntegrityError:
             conn.rollback()
-            return False # Código duplicado
+            return False
         finally:
             conn.close()
 
@@ -120,7 +119,7 @@ class Vaga:
             return cursor.lastrowid
         except sqlite3.IntegrityError:
             conn.rollback()
-            return None # Vaga duplicada
+            return None
         finally:
             conn.close()
 
@@ -138,7 +137,7 @@ class Vaga:
             return True
         except sqlite3.IntegrityError:
             conn.rollback()
-            return False # Vaga duplicada
+            return False
         finally:
             conn.close()
             
@@ -230,7 +229,6 @@ class Vaga:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
-            # Seleciona vagas E o nome do cargo ao qual pertencem
             cursor.execute("""
                 SELECT v.id, v.cod_vaga, v.area, cg.nome_cargo
                 FROM Vaga v
@@ -276,12 +274,10 @@ class Vaga:
         try:
             for index, row in df.iterrows():
                 try:
-                    # 1. Processamento e Normalização dos Dados do Cargo
                     cod_cargo = row.get("CODIGO_CARGO").strip()
                     nome_cargo = row.get("NOME_CARGO").strip()
-                    # CORREÇÃO: Normaliza "ATIVO" para "Ativo"
                     situacao_cargo = row.get("SITUACAO").strip().title() 
-                    nivel_cargo = row.get("NIVEL").strip().upper() # Garante D ou E
+                    nivel_cargo = row.get("NIVEL").strip().upper()
                     
                     if situacao_cargo not in ["Ativo", "Inativo"]:
                         erros.append(f"Linha {index + 2}: Situação do Cargo '{situacao_cargo}' inválida. Use 'Ativo' ou 'Inativo'.")
@@ -291,12 +287,10 @@ class Vaga:
                         erros.append(f"Linha {index + 2}: Nível do Cargo '{nivel_cargo}' inválido. Use 'D' ou 'E'.")
                         continue
 
-                    # 2. Processamento e Normalização dos Dados da Vaga
                     cod_vaga = row.get("CODIGO_VAGA").strip()
                     
                     situacao_vaga = row.get("SITUACAO_VAGA")
                     if situacao_vaga:
-                        # CORREÇÃO: Normaliza "OCUPADA" para "Ocupada" e "DESOCUPADA" para "Livre"
                         situacao_vaga = situacao_vaga.strip().title()
                         if situacao_vaga == "Desocupada":
                             situacao_vaga = "Livre"
@@ -304,7 +298,6 @@ class Vaga:
                     ocupante = row.get("NOME_OCUPANTE")
                     if ocupante: ocupante = ocupante.strip()
                     
-                    # Validação final da situação da vaga
                     if situacao_vaga not in ["Ocupada", "Livre"]:
                         situacao_vaga = "Livre" if not ocupante else "Ocupada"
 
@@ -314,7 +307,6 @@ class Vaga:
                     area = row.get("AREA")
                     if area: area = area.strip()
 
-                    # 3. Encontrar ou Criar Cargo
                     cursor.execute("SELECT id FROM CargoGestao WHERE cod_cargo = ?", (cod_cargo,))
                     cargo_row = cursor.fetchone()
                     
@@ -332,7 +324,6 @@ class Vaga:
                             WHERE id = ?
                         """, (nome_cargo, situacao_cargo, nivel_cargo, cargo_id))
 
-                    # 4. Encontrar ou Criar Vaga
                     cursor.execute("SELECT id FROM Vaga WHERE cod_vaga = ?", (cod_vaga,))
                     vaga_row = cursor.fetchone()
                     
@@ -356,11 +347,10 @@ class Vaga:
                 except Exception as e:
                     erros.append(f"Linha {index + 2}: Erro inesperado - {e}")
             
-            # Se chegamos aqui, podemos salvar as alterações
             conn.commit()
 
         except Exception as e:
-            conn.rollback() # Desfaz tudo se houver um erro fatal
+            conn.rollback()
             erros.append(f"Erro geral no processamento: {e}")
         finally:
             conn.close()
@@ -396,7 +386,6 @@ class HistoricoVaga:
                 WHERE id_vaga = ? 
                 ORDER BY data_hora DESC
             """, (id_vaga,))
-            # Converte para lista de dicts para facilitar o JSON
             return [dict(row) for row in cursor.fetchall()]
         finally:
             conn.close()

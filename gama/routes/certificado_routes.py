@@ -2,19 +2,17 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from gama.models.edital import Edital
 from gama.models.candidato import Candidato
 from gama.models.certificado import Certificado
-from gama.models.configuracao import Opcao # Importa o modelo de Opcao
+from gama.models.configuracao import Opcao 
 from collections import defaultdict 
 import io
 import locale
 from datetime import datetime
 from docxtpl import DocxTemplate
 from flask import send_file
-# import pandas as pd # REMOVIDO
 import zipfile
 
 certificado_bp = Blueprint('certificado', __name__, template_folder='../templates')
 
-# --- FUNÇÃO AUXILIAR ---
 def numero_por_extenso(n):
     unidades = {
         1: 'um', 2: 'dois', 3: 'três', 4: 'quatro', 5: 'cinco',
@@ -28,7 +26,6 @@ def numero_por_extenso(n):
     
     texto_numero = ""
 
-    # 2. Lógica para obter o nome do número
     if n in unidades:
         texto_numero = unidades[n]
     elif n in dezenas:
@@ -38,17 +35,13 @@ def numero_por_extenso(n):
     elif 30 < n <= 31:
         texto_numero = f"trinta e {unidades[n-30]}"
     else:
-        return str(n) # Fallback caso venha algo fora de 1-31
+        return str(n)
 
-    # 3. Formatação da frase final
     if n == 1:
-        # Exceção gramatical para o dia 1 (Singular e Ordinal)
         return "Ao primeiro dia do mês de"
     else:
-        # Padrão para todos os outros dias (Plural)
         return f"Aos {texto_numero} dias do mês de"
 
-# --- FUNÇÃO AUXILIAR DE GERAÇÃO (PARA USO INDIVIDUAL) ---
 def gerar_documentos_zip(candidato_id, reitor_nome, local_posse):
     """
     Busca um candidato e gera um ZIP com o Termo de Posse e o Termo de Apresentação.
@@ -77,7 +70,6 @@ def gerar_documentos_zip(candidato_id, reitor_nome, local_posse):
         mes_extenso = data_posse_obj.strftime('%B')
         ano_extenso = data_posse_obj.strftime('%Y')
         
-        # --- 1. Preparar Termo de Posse ---
         context_posse = {
             'nome': candidato['nome'],
             'cargo': candidato['nome_cargo'],
@@ -100,7 +92,6 @@ def gerar_documentos_zip(candidato_id, reitor_nome, local_posse):
         doc_posse.save(buffer_posse)
         buffer_posse.seek(0)
 
-        # --- 2. Preparar Termo de Apresentação ---
         context_apresentacao = {
             'data': data_posse_obj.strftime('%d/%m/%Y'),
             'unidade': candidato['lotacao'], 
@@ -115,14 +106,12 @@ def gerar_documentos_zip(candidato_id, reitor_nome, local_posse):
         doc_apresentacao.save(buffer_apresentacao)
         buffer_apresentacao.seek(0)
         
-        # --- 3. Registrar no Banco ---
         Certificado.create(
             nome_template='Termos Unificados (Posse+Apresentação)',
             id_candidato=candidato_id,
             id_usuario_emissor=session['usuario_id']
         )
         
-        # --- 4. Criar ZIP ---
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             nome_posse = f'Termo_de_Posse - {candidato["nome"]}.docx'
@@ -139,10 +128,6 @@ def gerar_documentos_zip(candidato_id, reitor_nome, local_posse):
         flash(f'Erro ao gerar documentos para {candidato["nome"]}: {e}', 'error')
         print(f"ERRO: {e}")
         return None, None
-
-# ===============================================
-# ROTAS PRINCIPAIS
-# ===============================================
 
 @certificado_bp.route('/painel')
 def painel_certificados():
@@ -175,8 +160,8 @@ def painel_certificados():
         editais=editais,
         candidatos_por_edital_agrupado=candidatos_agrupados,
         certificados_emitidos=certificados_emitidos,
-        opcoes_reitor=opcoes_reitor, # Necessário para o modal de confirmação
-        opcoes_local=opcoes_local,   # Necessário para o modal de confirmação
+        opcoes_reitor=opcoes_reitor, 
+        opcoes_local=opcoes_local,
         default_reitor=default_reitor,
         default_local=default_local
     )
@@ -220,8 +205,7 @@ def gerar_certificado_lote():
     if 'usuario_id' not in session:
         return redirect(url_for('auth.login'))
 
-    # 1. Captura os dados do formulário
-    candidatos_ids = request.form.getlist('candidatos_ids') # Recebe lista de IDs
+    candidatos_ids = request.form.getlist('candidatos_ids')
     reitor = request.form.get('reitor')
     local = request.form.get('local')
     
@@ -233,7 +217,6 @@ def gerar_certificado_lote():
         flash('Reitor e Local são obrigatórios.', 'error')
         return redirect(url_for('certificado.painel_certificados'))
 
-    # 2. Prepara o ZIP Mestre
     master_zip_buffer = io.BytesIO()
     sucesso_count = 0
     erros = []
@@ -241,15 +224,12 @@ def gerar_certificado_lote():
     try:
         with zipfile.ZipFile(master_zip_buffer, 'w', zipfile.ZIP_DEFLATED) as master_zip:
             for id_candidato in candidatos_ids:
-                # Reutiliza a função existente para gerar o ZIP individual
                 zip_buffer_individual, zip_filename = gerar_documentos_zip(id_candidato, reitor, local)
                 
                 if zip_buffer_individual:
-                    # Adiciona o ZIP individual dentro do ZIP Mestre
                     master_zip.writestr(zip_filename, zip_buffer_individual.getvalue())
                     sucesso_count += 1
                 else:
-                    # Se falhou (ex: falta data de posse), buscamos o nome para avisar
                     cand = Candidato.get_by_id(id_candidato)
                     nome_erro = cand['nome'] if cand else f"ID {id_candidato}"
                     erros.append(nome_erro)

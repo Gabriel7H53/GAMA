@@ -138,6 +138,12 @@ def criar_tabelas():
         cargo_gestao_id INTEGER NOT NULL,
         FOREIGN KEY (cargo_gestao_id) REFERENCES CargoGestao(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS PortariaRascunho (
+        id_edital INTEGER PRIMARY KEY,
+        texto_portaria TEXT NOT NULL,
+        data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_edital) REFERENCES Edital(id_edital) ON DELETE CASCADE
+    );
     """)
     
     # Verifica se o usuário master já existe

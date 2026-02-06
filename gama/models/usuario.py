@@ -74,8 +74,6 @@ class Usuario:
     def fechar_conexao(self):
         self.conn.close()
 
-    # -------- Métodos Estáticos Utilitários (acesso direto sem instanciar) --------
-
     @staticmethod
     def create(id_usuario, cpf_usuario, nome, email, senha_hash):
         conn = conectar()

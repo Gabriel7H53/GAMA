@@ -1,8 +1,7 @@
-# gama/routes/vaga_routes.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
 from gama.models.vaga import CargoGestao, Vaga
-from gama.models.candidato import Candidato # Para buscar candidatos do sistema
-from gama.models.vaga import CargoGestao, Vaga, HistoricoVaga # Adicione HistoricoVaga
+from gama.models.candidato import Candidato 
+from gama.models.vaga import CargoGestao, Vaga, HistoricoVaga 
 from gama.database.database import conectar
 import os
 import tempfile
@@ -12,7 +11,7 @@ vaga_bp = Blueprint('vaga', __name__, template_folder='../templates')
 def check_admin():
     return 'usuario_id' in session and session.get('tipo') == 'administrador' or "usuario"
 
-@vaga_bp.route('/painel') # Removido o '_vagas' para ser o painel principal
+@vaga_bp.route('/painel')
 def painel_vagas():
     if not check_admin():
         flash('Acesso negado.', 'error')
@@ -92,12 +91,10 @@ def adicionar_cargo():
     situacao = request.form['situacao']
     nivel = request.form['nivel']
     
-    # Captura o ID do novo cargo retornado pelo create
     novo_id = CargoGestao.create(cod_cargo, nome_cargo, situacao, nivel)
     
     if novo_id:
         flash('Cargo criado com sucesso!', 'success')
-        # Abre o novo cargo criado
         return redirect(url_for('vaga.painel_vagas', open=novo_id))
     else:
         flash('Erro ao criar cargo. O Código do Cargo já pode existir.', 'error')
@@ -117,7 +114,6 @@ def editar_cargo(id_cargo):
     else:
         flash('Cargo atualizado com sucesso!', 'success')
         
-    # Reabre o cargo editado
     return redirect(url_for('vaga.painel_vagas', open=id_cargo))
 
 @vaga_bp.route('/cargo/remover/<int:id_cargo>', methods=['POST'])
@@ -135,7 +131,6 @@ def remover_cargo(id_cargo):
 def adicionar_vaga():
     if not check_admin(): return redirect(url_for('auth.login'))
     
-    # Captura o ID do cargo para reabrir o painel
     cargo_id = request.form['cargo_gestao_id']
 
     cod_vaga = request.form['cod_vaga']
@@ -158,7 +153,6 @@ def adicionar_vaga():
         situacao_vaga = 'Ocupada'
 
     if Vaga.create(cargo_id, cod_vaga, situacao_vaga, ocupante_final, area, observacoes):
-        # Sincronização (Vaga -> Candidato)
         if candidato_id:
             Candidato.vincular_vaga(candidato_id, cod_vaga)
             
@@ -166,17 +160,14 @@ def adicionar_vaga():
     else:
         flash('Erro ao criar vaga. O Código da Vaga já pode existir.', 'error')
 
-    # Reabre o cargo onde a vaga foi adicionada
     return redirect(url_for('vaga.painel_vagas', open=cargo_id))
 
 @vaga_bp.route('/vaga/editar/<int:id_vaga>', methods=['POST'])
 def editar_vaga(id_vaga):
     if not check_admin(): return redirect(url_for('auth.login'))
     
-    # Captura o ID do cargo para reabrir o painel (vem do hidden input no form)
     cargo_id = request.form.get('cargo_gestao_id')
 
-    # 1. Buscar dados ANTIGOS para comparação
     conn_temp = conectar() 
     cursor_temp = conn_temp.cursor()
     cursor_temp.execute("SELECT * FROM Vaga WHERE id = ?", (id_vaga,))
@@ -188,7 +179,6 @@ def editar_vaga(id_vaga):
     ocupante_antigo = row_antiga[3] if row_antiga else "N/A"
     area_antiga = row_antiga[4] if row_antiga else ""
 
-    # 2. Coleta dados
     cod_vaga_novo = request.form['cod_vaga']
     area_nova = request.form.get('area')
     observacoes = request.form.get('observacoes')
@@ -207,10 +197,8 @@ def editar_vaga(id_vaga):
         ocupante_final = ocupante_manual
         situacao_vaga = 'Ocupada'
 
-    # 3. Atualiza
     if Vaga.update(id_vaga, cod_vaga_novo, situacao_vaga, ocupante_final, area_nova, observacoes):
         
-        # Histórico
         usuario_logado = session.get('nome', 'Usuário')
         
         ocupante_antigo_safe = ocupante_antigo if ocupante_antigo else "Vago"
@@ -234,7 +222,6 @@ def editar_vaga(id_vaga):
             msg = f"Alterou área: '{display_antiga}' ➝ '{display_nova}'"
             HistoricoVaga.create(id_vaga, usuario_logado, msg)
             
-        # Sincronização (Vaga -> Candidato)
         if candidato_id:
             Candidato.vincular_vaga(candidato_id, cod_vaga_novo)
         else:
@@ -244,7 +231,6 @@ def editar_vaga(id_vaga):
     else:
         flash('Erro ao atualizar vaga.', 'error')
 
-    # Reabre o cargo
     return redirect(url_for('vaga.painel_vagas', open=cargo_id))
 
 @vaga_bp.route('/vaga/remover/<int:id_vaga>', methods=['POST'])
@@ -253,7 +239,6 @@ def remover_vaga(id_vaga):
     
     conn = conectar()
     cursor = conn.cursor()
-    # Precisamos pegar o cargo_gestao_id TAMBÉM para saber onde voltar
     cursor.execute("SELECT cod_vaga, cargo_gestao_id FROM Vaga WHERE id = ?", (id_vaga,))
     row = cursor.fetchone()
     cod_vaga_para_remover = row[0] if row else None
@@ -268,7 +253,6 @@ def remover_vaga(id_vaga):
     else:
         flash('Erro ao remover vaga.', 'error')
         
-    # Reabre o cargo pai se ele existir
     if id_cargo_pai:
         return redirect(url_for('vaga.painel_vagas', open=id_cargo_pai))
     else:

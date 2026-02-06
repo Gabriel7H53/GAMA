@@ -5,7 +5,6 @@ from datetime import datetime
 class Agendamento:
 
     @staticmethod
-    # MODIFICADO: Adicionado 'tipo_agendamento' no final
     def create(id_edital, id_usuario, data_hora_agendamento, nome_pessoa_entrega, tipo_agendamento='documento'):
         """Cria um novo agendamento no banco de dados."""
         conn = conectar()
@@ -51,7 +50,6 @@ class Agendamento:
         conn = conectar()
         cursor = conn.cursor()
         try:
-            # Usamos um JOIN para buscar o nome do usuário que fez o agendamento
             cursor.execute("""
                 SELECT a.*, u.nome 
                 FROM Agendamento a
@@ -59,7 +57,6 @@ class Agendamento:
                 WHERE a.id_edital = ? 
                 ORDER BY a.data_hora_agendamento ASC
             """, (id_edital,))
-            # Retorna uma lista de tuplas. A coluna tipo_agendamento será o índice 6.
             return cursor.fetchall() 
         except sqlite3.Error as e:
             print(f"Erro ao buscar agendamentos: {e}")
@@ -71,7 +68,7 @@ class Agendamento:
     def get_by_id(id_agendamento):
         """Busca um único agendamento pelo seu ID."""
         conn = conectar()
-        conn.row_factory = sqlite3.Row # Para retornar um dicionário
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT * FROM Agendamento WHERE id_agendamento = ?", (id_agendamento,))

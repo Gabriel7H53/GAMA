@@ -1,10 +1,8 @@
-# gama/models/edital.py
 import sqlite3
 from gama.database.database import conectar
 from datetime import datetime
 
 class Edital:
-    # ... O código da classe Edital permanece o mesmo ...
     @staticmethod
     def create(numero_edital, data_edital, data_publicacao, vencimento_edital, prazo_prorrogacao, status):
         conn = conectar()
@@ -60,12 +58,9 @@ class Edital:
         conn = conectar()
         cursor = conn.cursor()
         try:
-            # Limpa as tabelas dependentes
-            cursor.execute("DELETE FROM Agendamento WHERE id_edital = ?", (id_edital,)) # <-- LINHA ADICIONADA
+            cursor.execute("DELETE FROM Agendamento WHERE id_edital = ?", (id_edital,))
             cursor.execute("DELETE FROM Candidato WHERE id_edital = ?", (id_edital,))
             cursor.execute("DELETE FROM Cargo WHERE id_edital = ?", (id_edital,))
-            
-            # Exclui o edital principal
             cursor.execute("DELETE FROM Edital WHERE id_edital = ?", (id_edital,))
             
             conn.commit()
@@ -78,7 +73,6 @@ class Edital:
 
 
 class Cargo:
-    # ... O código da classe Cargo permanece o mesmo ...
     @staticmethod
     def get_or_create(id_edital, nome_cargo, padrao_vencimento):
         conn = conectar()
@@ -87,14 +81,11 @@ class Cargo:
             cursor.execute("SELECT id_cargo FROM Cargo WHERE nome_cargo = ? AND id_edital = ?", (nome_cargo, id_edital))
             cargo = cursor.fetchone()
             if cargo:
-                # Optional: Check if the existing cargo has the correct pattern?
-                # Or update it? For now, we just return the existing ID.
                 return cargo[0]
 
-            # Add padrao_vencimento to the INSERT statement
             cursor.execute(
                 "INSERT INTO Cargo (nome_cargo, id_edital, padrao_vencimento) VALUES (?, ?, ?)",
-                (nome_cargo, id_edital, padrao_vencimento) # Pass the new value
+                (nome_cargo, id_edital, padrao_vencimento) 
             )
             conn.commit()
             return cursor.lastrowid
@@ -103,7 +94,6 @@ class Cargo:
 
     @staticmethod
     def get_by_edital(id_edital):
-        # This method likely doesn't need changes as SELECT * will include the new column
         conn = conectar()
         cursor = conn.cursor()
         try:
@@ -113,3 +103,44 @@ class Cargo:
             conn.close()
 
 
+
+class PortariaRascunho:
+    @staticmethod
+    def save(id_edital, texto_portaria):
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            # Upsert (Insert or Replace)
+            cursor.execute("""
+                INSERT OR REPLACE INTO PortariaRascunho (id_edital, texto_portaria, data_atualizacao)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            """, (id_edital, texto_portaria))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao salvar rascunho de portaria: {e}")
+            return False
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get(id_edital):
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT texto_portaria FROM PortariaRascunho WHERE id_edital = ?", (id_edital,))
+            row = cursor.fetchone()
+            return row[0] if row else None
+        finally:
+            conn.close()
+    
+    @staticmethod
+    def get_all_dict():
+        """Retorna um dicionário {id_edital: texto_portaria}"""
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT id_edital, texto_portaria FROM PortariaRascunho")
+            return {row[0]: row[1] for row in cursor.fetchall()}
+        finally:
+            conn.close()

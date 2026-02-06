@@ -105,24 +105,19 @@ def agendamentos():
             'agend_pericias': []
         }
 
-        # 1. Buscar todos os agendamentos do edital
         agendamentos_edital = Agendamento.get_by_edital(id_edital)
-
-        # 2. Criar listas e lookups de agendamentos
         docs_agendados = {}
         docs_entregues = {}
         pericia_agendada = {}
         pericia_concluida = {}
 
         for ag in agendamentos_edital:
-            # Índices: [2]=nome, [5]=status, [6]=tipo
             nome_candidato = ag[2]
             if ag[6] == 'documento':
                 if ag[5] == 'concluido':
                     docs_entregues[nome_candidato] = 'entregue'
                 elif ag[5] == 'agendado':
                     docs_agendados[nome_candidato] = 'agendado'
-                # Adiciona à lista de exibição (seção 2)
                 dados_pagina[id_edital]['agend_docs'].append(ag)
             
             elif ag[6] == 'pericia':
@@ -130,26 +125,20 @@ def agendamentos():
                     pericia_concluida[nome_candidato] = 'concluida'
                 elif ag[5] == 'agendado':
                     pericia_agendada[nome_candidato] = 'agendado'
-                # Adiciona à lista de exibição (seção 2)
                 dados_pagina[id_edital]['agend_pericias'].append(ag)
 
-        # 3. Buscar candidatos e processar status
         todos_candidatos_do_edital = Candidato.get_by_edital(id_edital)
         
-        # Filtra apenas nomeados (índice 8 = situacao)
         candidatos_nomeados = [c for c in todos_candidatos_do_edital if c[8] == 'nomeado']
         
         lista_candidatos_final = []
         for c in candidatos_nomeados:
-            # Índices: [0]=id, [1]=nome, [15]=contatado
+            
             id_candidato = c[0]
             nome_candidato = c[1]
             contatado = c[15] 
 
-            # Define o status do documento
             status_doc = docs_entregues.get(nome_candidato, docs_agendados.get(nome_candidato, 'agendar'))
-            
-            # Define o status da perícia
             status_pericia = pericia_concluida.get(nome_candidato, pericia_agendada.get(nome_candidato, 'agendar'))
 
             lista_candidatos_final.append({
@@ -161,8 +150,6 @@ def agendamentos():
             })
         
         dados_pagina[id_edital]['candidatos'] = lista_candidatos_final
-        
-        # 4. Ordenar listas de agendamento (concluídos por último)
         dados_pagina[id_edital]['agend_docs'].sort(key=lambda x: x[5] == 'concluido')
         dados_pagina[id_edital]['agend_pericias'].sort(key=lambda x: x[5] == 'concluido')
 
@@ -171,7 +158,7 @@ def agendamentos():
         'agendamentos.html', 
         nome=session.get('nome'), 
         editais=todos_editais,
-        dados_pagina=dados_pagina # Passa a nova estrutura de dados
+        dados_pagina=dados_pagina 
     )
 
 
@@ -216,7 +203,6 @@ def concluir_pericia(id_agendamento):
         flash('Acesso negado.', 'error')
         return redirect(url_for('auth.login'))
 
-    # ALTERAÇÃO: Busca o agendamento para saber o ID do Edital
     agendamento = Agendamento.get_by_id(id_agendamento)
     id_edital = agendamento['id_edital'] if agendamento else None
 
@@ -231,7 +217,6 @@ def concluir_pericia(id_agendamento):
     except Exception as e:
         flash(f"Ocorreu um erro ao atualizar o status: {e}", "error")
     
-    # Redireciona com open=...
     return redirect(url_for('usuarios.agendamentos', open=id_edital))
 
 
@@ -240,7 +225,6 @@ def editar_agendamento(id_agendamento):
     if 'usuario_id' not in session:
         return redirect(url_for('auth.login'))
 
-    # ALTERAÇÃO: Busca o agendamento antes de editar
     agendamento = Agendamento.get_by_id(id_agendamento)
     id_edital = agendamento['id_edital'] if agendamento else None
 
@@ -264,7 +248,6 @@ def remover_agendamento(id_agendamento):
     if 'usuario_id' not in session:
         return redirect(url_for('auth.login'))
 
-    # ALTERAÇÃO: Busca o agendamento ANTES de deletar
     agendamento = Agendamento.get_by_id(id_agendamento)
     id_edital = agendamento['id_edital'] if agendamento else None
 
