@@ -4,12 +4,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 
 # Função para conectar ao banco de dados
+# Caminho absoluto, ancorado neste arquivo: não depende da pasta de onde o app é iniciado
+DIRETORIO_DB = os.path.dirname(os.path.abspath(__file__))
+
 def conectar():
-    diretorio_db = "gama/database"
-    if not os.path.exists(diretorio_db):
-        os.makedirs(diretorio_db)
-    
-    return sqlite3.connect(f"{diretorio_db}/editais.db")
+    os.makedirs(DIRETORIO_DB, exist_ok=True)
+    return sqlite3.connect(os.path.join(DIRETORIO_DB, "editais.db"))
 
 # Função para verificar o login
 def verificar_login(email, senha):
