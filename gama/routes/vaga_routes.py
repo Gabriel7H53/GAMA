@@ -5,6 +5,8 @@ from gama.models.vaga import CargoGestao, Vaga, HistoricoVaga
 from gama.database.database import conectar
 import os
 import tempfile
+import io
+from datetime import datetime
 
 vaga_bp = Blueprint('vaga', __name__, template_folder='../templates')
 
@@ -265,3 +267,106 @@ def get_historico_vaga(id_vaga):
     
     historico = HistoricoVaga.get_by_vaga(id_vaga)
     return jsonify(historico)
+
+@vaga_bp.route('/qrsta/pdf')
+def gerar_qrsta_pdf():
+    """Gera o PDF do Quadro de Referência dos Servidores Técnicos Administrativos."""
+    if not check_admin():
+        return redirect(url_for('auth.login'))
+
+    from flask import send_file
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer, KeepTogether
+
+    try:
+        cargos = CargoGestao.get_all_with_counts()
+    except Exception as e:
+        flash(f'Erro ao gerar o QRSTA: {e}', 'error')
+        return redirect(url_for('vaga.painel_vagas'))
+
+    cargos = sorted(cargos, key=lambda c: str(c['cod_cargo']))
+    agora = datetime.now()
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=12*mm, rightMargin=12*mm,
+                            topMargin=12*mm, bottomMargin=14*mm,
+                            title='QRSTA - Quadro de Referência dos Servidores Técnicos Administrativos')
+
+    titulo = ParagraphStyle('t', fontName='Times-Bold', fontSize=11, alignment=1, leading=14)
+    sub = ParagraphStyle('s', fontName='Times-Italic', fontSize=9, alignment=1, spaceBefore=6, spaceAfter=6)
+    cel = ParagraphStyle('c', fontName='Times-Roman', fontSize=8, leading=9)
+
+    azul = colors.HexColor('#1f4e79')
+    elementos = [
+        Paragraph('MINISTÉRIO DA EDUCAÇÃO', titulo),
+        Paragraph('UNIVERSIDADE FEDERAL DA GRANDE DOURADOS', titulo),
+        Paragraph('PRÓ-REITORIA DE GESTÃO DE PESSOAS', titulo),
+        Paragraph('Quadro de Referência dos Servidores Técnicos Administrativos (QRSTA)', titulo),
+        Paragraph(f'* Dados extraídos do sistema em {agora.strftime("%d/%m/%Y")} às {agora.strftime("%H:%M")}', sub),
+    ]
+
+    dados = [['#', 'CÓDIGO', 'NOME DO CARGO', 'SITUAÇÃO', 'NÍVEL', 'TOTAL', 'OCUPADAS', 'DESOCUPADAS']]
+    tot = ocu = liv = 0
+    resumo = {n: [0, 0, 0] for n in ('E', 'D', 'C', 'B', 'A')}
+    for i, c in enumerate(cargos, 1):
+        t = c['total_vagas'] or 0
+        o = c['ocupadas'] or 0
+        l = c['livres'] or 0
+        sit = 'Ativo' if c['situacao'] == 'Ativo' else 'Extinto'
+        dados.append([i, c['cod_cargo'], Paragraph(c['nome_cargo'], cel), sit, c['nivel'], t, o, l])
+        tot += t; ocu += o; liv += l
+        r = resumo.setdefault(c['nivel'], [0, 0, 0])
+        r[0] += l; r[1] += o; r[2] += t
+    dados.append(['', '', 'TOTAL', '', '', tot, ocu, liv])
+
+    larg = [9*mm, 17*mm, 68*mm, 18*mm, 12*mm, 14*mm, 20*mm, 24*mm]
+    tabela = Table(dados, colWidths=larg, repeatRows=1)
+    tabela.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('BACKGROUND', (0, 0), (-1, 0), azul),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (2, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.grey),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#eef3f8')]),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#ffe699')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Times-Bold'),
+    ]))
+    elementos.append(tabela)
+    elementos.append(Spacer(1, 8*mm))
+
+    res = [['CLASSIFIC.', 'VAGOS', 'OCUPADOS', 'TOTAL']]
+    for n in ('E', 'D', 'C', 'B', 'A'):
+        res.append([n] + resumo[n])
+    for n, v in resumo.items():
+        if n not in ('E', 'D', 'C', 'B', 'A'):
+            res.append([n] + v)
+    res.append(['Total', liv, ocu, tot])
+    tr = Table(res, colWidths=[24*mm, 24*mm, 24*mm, 24*mm], hAlign='RIGHT')
+    tr.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('BACKGROUND', (0, 0), (-1, 0), azul),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.grey),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#ffe699')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Times-Bold'),
+    ]))
+    elementos.append(KeepTogether([tr]))
+
+    def rodape(canvas, d):
+        canvas.setFont('Times-Roman', 8)
+        canvas.drawRightString(A4[0] - 12*mm, 8*mm, f'Página {d.page}')
+
+    doc.build(elementos, onFirstPage=rodape, onLaterPages=rodape)
+    buf.seek(0)
+    return send_file(buf, mimetype='application/pdf', as_attachment=True,
+                     download_name=f'QRSTA_{agora.strftime("%Y%m%d_%H%M")}.pdf')

@@ -270,3 +270,79 @@ body {
 .hist-data { color: #6b7280; font-size: 0.75rem; min-width: 110px; }
 .hist-user { font-weight: bold; color: #1f2937; }
 .hist-desc { color: #374151; }
+
+/* ===== Modais de Cargo/Vaga: estrutura, grid e contexto ===== */
+.btn-secondary { background-color: #fff; color: var(--text); border: 1px solid #d1d5db; }
+.btn-secondary:hover { background-color: #f1f5f9; }
+.modal-footer .btn { margin: 0; }
+
+.modal-content { max-height: 90vh; display: flex; flex-direction: column; }
+.modal-content > form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.modal-body { overflow-y: auto; }
+.modal-vaga { max-width: 720px; }
+.modal-subtitle { display: block; font-size: 0.8rem; color: var(--text-light); margin-top: 0.15rem; }
+
+label.required::after { content: ' *'; color: var(--danger); font-weight: 700; }
+.req-mark { color: var(--danger); font-weight: 700; }
+.form-group label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.4rem; }
+
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.form-grid .form-group { margin-bottom: 0; }
+.form-grid .form-full { grid-column: 1 / -1; }
+
+.cargo-context {
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+    background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid var(--primary);
+    border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 1.25rem;
+}
+.cargo-context-label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-light); }
+.cargo-context-main strong { display: block; font-size: 1.1rem; color: var(--text); }
+.cargo-context-meta { display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem; }
+.cargo-context-meta .badge { margin-left: 0.25rem; }
+.cargo-context-stats { display: flex; gap: 0.5rem; }
+.stat-box { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.4rem 0.8rem; text-align: center; min-width: 70px; }
+.stat-box span { display: block; font-size: 1.15rem; font-weight: 700; }
+.stat-box small { font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; }
+.stat-ocupada { background: #fee2e2; border-color: #fecaca; }
+.stat-ocupada span { color: #991b1b; }
+.stat-livre { background: #dcfce7; border-color: #bbf7d0; }
+.stat-livre span { color: #166534; }
+
+.form-section { margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid #eef0f3; }
+.form-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.form-section-title { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.9rem; color: var(--text); }
+.form-section-title i { color: var(--primary); }
+.form-section-title .badge { margin-left: auto; }
+
+@media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-row { flex-direction: column; }
+    .cargo-context-stats { width: 100%; }
+    .stat-box { flex: 1; }
+}
+
+
+/* ===== Contadores de vagas: largura fixa para alinhar 1, 2 ou 3 dígitos ===== */
+.count-tag {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem;
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+}
+.count-tag strong { font-weight: 600; }
+.count-num {
+    display: inline-block;
+    min-width: 3ch;          /* espaço de 3 dígitos */
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+/* larguras iguais por tipo de contador, para as colunas alinharem entre os cards */
+.count-group .count-tag:nth-child(1) { min-width: 7.5rem; }
+.count-group .count-tag:nth-child(2) { min-width: 9rem; }
+.count-group .count-tag:nth-child(3) { min-width: 7.5rem; }
+@media (max-width: 900px) {
+    .cargo-header { flex-wrap: wrap; }
+    .count-group { flex-wrap: wrap; }
+}

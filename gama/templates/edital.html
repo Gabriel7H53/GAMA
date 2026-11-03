@@ -66,7 +66,7 @@
             <div class="edital-card" id="edital-{{ edital[0] }}">
                 <div class="edital-header" onclick="toggleContent('body-edital-{{ edital[0] }}', this)">
                     <div class="edital-info">
-                        <strong>{{ edital[1] }}</strong>
+                        <strong title="{{ edital[1] }}">{{ edital[1] }}</strong>
                         {% set status_vencimento = edital[7] %}
                         <span class="status-vencimento {{ status_vencimento }}" title="Data de Vencimento">
                             <i class="fas fa-calendar-times"></i> {{ edital[4] }}
@@ -223,6 +223,12 @@
                             <option value="prorrogado">Prorrogado</option>
                         </select>
                     </div>
+
+                    <details id="editalHistoricoSection" class="historico-section" style="display: none;">
+                        <summary><i class="fas fa-history"></i> Histórico de Alterações
+                            <span class="badge badge-info" id="editalHistoricoCount"></span></summary>
+                        <div id="editalHistoricoLista" class="historico-container historico-timeline"></div>
+                    </details>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeEditalModal()">Cancelar</button>
@@ -454,6 +460,9 @@
         const editalForm = document.getElementById('editalForm');
         function openEditalModal(buttonElement) {
             editalForm.reset();
+            const secaoHistorico = document.getElementById('editalHistoricoSection');
+            secaoHistorico.style.display = 'none';
+            secaoHistorico.open = false;
             if (!buttonElement) {
                 document.getElementById('editalModalTitle').innerText = 'Adicionar Novo Edital';
                 editalForm.action = "{{ url_for('edital.adicionar_edital') }}";
@@ -469,6 +478,7 @@
                 document.getElementById('vencimento_edital').value = edital[4];
                 document.getElementById('prazo_prorrogacao').value = edital[5] || '';
                 document.getElementById('status').value = edital[6];
+                carregarHistoricoEdital(edital[0]);
             }
             editalModal.classList.add('active');
         }
@@ -725,6 +735,83 @@
             });
         });
 
+
+        // --- Histórico do Edital ---
+        const TIPOS_HISTORICO = {
+            criacao: ['Criação', 'hist-tag-criacao'],
+            edicao: ['Edição', 'hist-tag-edicao'],
+            prorrogacao: ['Prorrogação', 'hist-tag-prorrogacao'],
+            remocao: ['Remoção', 'hist-tag-remocao'],
+            candidato_adicionado: ['Candidato +', 'hist-tag-candidato'],
+            candidato_editado: ['Candidato', 'hist-tag-candidato'],
+            candidato_removido: ['Candidato −', 'hist-tag-remocao'],
+            candidato_nomeado: ['Nomeação', 'hist-tag-candidato'],
+            candidato_empossado: ['Posse', 'hist-tag-candidato']
+        };
+
+        // Renderiza a lista de eventos (usado no modal de edição e no histórico geral)
+        function renderHistorico(lista, data, geral) {
+            lista.innerHTML = '';
+            const aviso = (texto, cor) => {
+                const p = document.createElement('p');
+                p.style.cssText = 'text-align:center;padding:10px;color:' + cor;
+                p.textContent = texto;
+                lista.appendChild(p);
+            };
+            if (data === null) { aviso('Não foi possível carregar o histórico.', '#dc2626'); return; }
+            if (data.length === 0) { aviso('Nenhum histórico registrado.', '#999'); return; }
+            data.forEach(item => {
+                const d = new Date(item.data_hora.replace(' ', 'T'));
+                const dataFmt = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const [rotulo, classe] = TIPOS_HISTORICO[item.tipo_alteracao] || [item.tipo_alteracao, 'hist-tag-edicao'];
+
+                const div = document.createElement('div');
+                div.className = 'historico-item';
+                const dt = document.createElement('div');
+                dt.className = 'hist-data';
+                dt.textContent = dataFmt;
+                const corpo = document.createElement('div');
+                corpo.style.flexGrow = '1';
+                const tag = document.createElement('span');
+                tag.className = 'hist-tag ' + classe;
+                tag.textContent = rotulo;
+                const user = document.createElement('span');
+                user.className = 'hist-user';
+                user.textContent = ' ' + item.usuario_responsavel + ': ';
+                const desc = document.createElement('span');
+                desc.className = 'hist-desc';
+                desc.textContent = item.descricao;
+                corpo.append(tag, user, desc);
+                if (geral) {
+                    const ed = document.createElement('div');
+                    ed.className = 'hist-edital-ref';
+                    ed.textContent = item.numero_edital ? 'Edital: ' + item.numero_edital : 'Edital removido (#' + item.id_edital + ')';
+                    corpo.appendChild(ed);
+                }
+                div.append(dt, corpo);
+                lista.appendChild(div);
+            });
+        }
+
+        function buscarHistorico(url) {
+            return fetch(url)
+                .then(r => { if (!r.ok) throw new Error('Erro na resposta da API'); return r.json(); })
+                .catch(() => null);
+        }
+
+        // Histórico dentro do modal "Editar Edital" (carregado sob demanda via fetch)
+        function carregarHistoricoEdital(idEdital) {
+            const secao = document.getElementById('editalHistoricoSection');
+            const lista = document.getElementById('editalHistoricoLista');
+            const contador = document.getElementById('editalHistoricoCount');
+            secao.style.display = 'block';
+            contador.textContent = '';
+            lista.innerHTML = '<p style="text-align:center;padding:10px;color:#999;">Carregando histórico...</p>';
+            buscarHistorico(`/edital/api/historico/${idEdital}`).then(data => {
+                renderHistorico(lista, data, false);
+                if (data) contador.textContent = data.length;
+            });
+        }
 
         // --- Fechar Modais ao clicar fora ---
         window.onclick = function (event) {

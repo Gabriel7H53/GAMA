@@ -36,20 +36,87 @@ class Edital:
             conn.close()
 
     @staticmethod
-    def update(id_edital, numero_edital, data_edital, data_publicacao, vencimento_edital, prazo_prorrogacao, status):
+    def update(id_edital, numero_edital, data_edital, data_publicacao, vencimento_edital, prazo_prorrogacao, status, usuario_responsavel=None):
+        """Atualiza o edital e grava o histórico de alterações na MESMA transação."""
         conn = conectar()
         cursor = conn.cursor()
         try:
+            cursor.execute("""
+                SELECT numero_edital, data_edital, data_publicacao, vencimento_edital, prazo_prorrogacao, status
+                FROM Edital WHERE id_edital = ?
+            """, (id_edital,))
+            antigo = cursor.fetchone()
+
             cursor.execute("""
                 UPDATE Edital 
                 SET numero_edital = ?, data_edital = ?, data_publicacao = ?, vencimento_edital = ?, prazo_prorrogacao = ?, status = ?
                 WHERE id_edital = ?
             """, (numero_edital, data_edital, data_publicacao, vencimento_edital, prazo_prorrogacao, status, id_edital))
+
+            if antigo and cursor.rowcount:
+                campos = [
+                    ('número', antigo[0], numero_edital, 'edicao'),
+                    ('data do edital', antigo[1], data_edital, 'edicao'),
+                    ('data de publicação', antigo[2], data_publicacao, 'edicao'),
+                    ('vencimento', antigo[3], vencimento_edital, 'prorrogacao'),
+                    ('prazo de prorrogação', antigo[4], prazo_prorrogacao, 'prorrogacao'),
+                    ('status', antigo[5], status, 'edicao'),
+                ]
+                for nome, valor_antigo, valor_novo, tipo in campos:
+                    if str(valor_antigo if valor_antigo is not None else '') != str(valor_novo if valor_novo is not None else ''):
+                        cursor.execute("""
+                            INSERT INTO HistoricoEdital (id_edital, usuario_responsavel, tipo_alteracao, descricao, data_hora)
+                            VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+                        """, (id_edital, usuario_responsavel or 'Usuário', tipo,
+                              f"Alterou {nome}: '{valor_antigo}' ➝ '{valor_novo}'"))
+
             conn.commit()
             return True, "Edital atualizado com sucesso."
         except sqlite3.Error as e:
             conn.rollback()
             return False, f"Erro ao atualizar edital: {e}"
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_by_id(id_edital):
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM Edital WHERE id_edital = ?", (id_edital,))
+            return cursor.fetchone()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_by_numero(numero_edital):
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM Edital WHERE numero_edital = ?", (numero_edital,))
+            return cursor.fetchone()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_historico(id_edital=None):
+        """Histórico de um edital; sem id_edital retorna o histórico geral (inclui editais removidos)."""
+        conn = conectar()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            query = """
+                SELECT h.*, e.numero_edital
+                FROM HistoricoEdital h
+                LEFT JOIN Edital e ON e.id_edital = h.id_edital
+            """
+            params = ()
+            if id_edital is not None:
+                query += " WHERE h.id_edital = ?"
+                params = (id_edital,)
+            query += " ORDER BY h.data_hora DESC, h.id DESC"
+            cursor.execute(query, params)
+            return [dict(r) for r in cursor.fetchall()]
         finally:
             conn.close()
 
@@ -68,6 +135,25 @@ class Edital:
         except sqlite3.Error as e:
             conn.rollback()
             return False, f"Erro ao remover edital: {e}"
+        finally:
+            conn.close()
+
+
+class HistoricoEdital:
+    @staticmethod
+    def create(id_edital, usuario_responsavel, tipo_alteracao, descricao):
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO HistoricoEdital (id_edital, usuario_responsavel, tipo_alteracao, descricao, data_hora)
+                VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+            """, (id_edital, usuario_responsavel or 'Usuário', tipo_alteracao, descricao))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erro ao criar histórico do edital: {e}")
+            return False
         finally:
             conn.close()
 

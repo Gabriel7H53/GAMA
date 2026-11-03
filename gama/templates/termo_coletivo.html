@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termo de Posse Coletivo - GAMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/edital.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-b.ico') }}">
+    <style>
+        /* ── Ajuste de largura das colunas da tabela ─────────── */
+        .edital-table th:nth-child(1), .edital-table td:nth-child(1) { width: 6%; }
+        .edital-table th:nth-child(2), .edital-table td:nth-child(2) { width: 38%; }
+        .edital-table th:nth-child(3), .edital-table td:nth-child(3) { width: 18%; }
+        .edital-table th:nth-child(4), .edital-table td:nth-child(4) { width: 20%; white-space: nowrap; overflow: visible; }
+        .edital-table th:nth-child(5), .edital-table td:nth-child(5) { width: 18%; }
+
+        /* ── Portaria textarea ────────────────────────────────── */
+        .portaria-field {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid var(--border, #d1d5db);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+            color: #111827;
+        }
+        .portaria-field:focus {
+            outline: none;
+            border-color: var(--primary, #2563eb);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .portaria-field::placeholder {
+            color: #9ca3af;
+        }
+        /* ── Config card no modal ─────────────────────────────── */
+        .config-info-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .config-info-card p { margin: 0.2rem 0; font-size: 0.9rem; }
+        .config-info-card strong { color: #374151; }
+        /* ── Aviso data divergente ────────────────────────────── */
+        .data-aviso {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            color: #92400e;
+            margin-top: 0.75rem;
+            display: none;
+        }
+        /* ── Textarea label ───────────────────────────────────── */
+        .modal-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.4rem;
+        }
+        .modal-required {
+            color: #dc2626;
+            margin-left: 2px;
+        }
+        /* ── Candidatos selecionados preview ──────────────────── */
+        #preview-candidatos {
+            max-height: 180px;
+            overflow-y: auto;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        #preview-candidatos li { margin-bottom: 0.25rem; }
+        /* ── Seleção counter badge ────────────────────────────── */
+        .count-badge {
+            background: #2563eb;
+            color: #fff;
+            border-radius: 999px;
+            padding: 0 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <header class="dashboard-header">
+        <nav class="dashboard-nav container">
+            <h1 class="dashboard-title">GAMA</h1>
+            <div class="dashboard-user">
+                <span>{{ nome }}</span>
+                {% if session.get('tipo') == 'administrador' %}
+                    <a href="{{ url_for('admin.painel_admin') }}" class="btn btn-primary">Painel Admin</a>
+                {% else %}
+                    <a href="{{ url_for('usuarios.painel_usuario') }}" class="btn btn-primary">Meu Painel</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">Sair</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="dashboard-content container">
+        <div class="section-header">
+            <h2 class="page-title">Termo de Posse Coletivo</h2>
+            <p class="config-subtitle" style="margin: 0;">
+                Selecione os servidores que serão empossados coletivamente. 
+                Todos devem ter a <strong>mesma data de posse</strong>.
+            </p>
+        </div>
+
+        {# ── Flash messages ──────────────────────────────────── #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}{% endif %}
+        {% endwith %}
+
+        {# ── Form oculto de submissão ─────────────────────────── #}
+        <form id="form-coletivo"
+              action="{{ url_for('certificado.gerar_termo_coletivo') }}"
+              method="POST">
+            <input type="hidden" name="reitor" id="input_reitor">
+            <input type="hidden" name="local"  id="input_local">
+            <input type="hidden" name="portaria" id="input_portaria">
+            <div id="inputs-candidatos"></div>
+        </form>
+
+        {# ── Listagem de candidatos por edital/cargo ─────────── #}
+        {% for edital in editais %}
+        <div class="edital-card">
+            <div class="edital-header js-toggle-trigger" data-target="body-col-edital-{{ edital[0] }}">
+                <div class="edital-info">
+                    <strong>{{ edital[1] }}</strong>
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn btn-primary"
+                            style="padding: 0.5rem 1rem;"
+                            onclick="event.stopPropagation(); selecionarPosseMaisRecente(this)">
+                        Selecionar Posse Mais Recente
+                    </button>
+                </div>
+            </div>
+
+            <div class="edital-body" id="body-col-edital-{{ edital[0] }}">
+                {% set cargos_do_edital = candidatos_por_edital_agrupado.get(edital[0], {}) %}
+                {% if cargos_do_edital %}
+                    {% for cargo_nome, lista_de_candidatos in cargos_do_edital.items() %}
+                    <div class="cargo-group">
+                        <div class="cargo-header js-toggle-trigger"
+                             data-target="body-col-cargo-{{ edital[0] }}-{{ loop.index }}">
+                            <h4 class="cargo-title">
+                                {{ cargo_nome }}
+                                {% if lista_de_candidatos[0].padrao_vencimento %}
+                                    (Nível {{ lista_de_candidatos[0].padrao_vencimento }})
+                                {% endif %}
+                            </h4>
+                        </div>
+                        <div class="cargo-body" id="body-col-cargo-{{ edital[0] }}-{{ loop.index }}">
+                            <table class="edital-table">
+                                <thead>
+                                    <tr>
+                                        <th class="checkbox-col">
+                                            <input type="checkbox" class="checkbox-custom"
+                                                   onchange="toggleCargo(this)">
+                                        </th>
+                                        <th>Candidato</th>
+                                        <th>Inscrição</th>
+                                        <th>Data de Posse</th>
+                                        <th>Situação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for candidato in lista_de_candidatos %}
+                                    <tr>
+                                        <td class="checkbox-col">
+                                            <input type="checkbox"
+                                                   class="checkbox-custom candidato-select"
+                                                   value="{{ candidato.id_candidato }}"
+                                                   data-nome="{{ candidato.nome }}"
+                                                   data-cargo="{{ candidato.nome_cargo }}"
+                                                   data-lotacao="{{ candidato.lotacao or '' }}"
+                                                   data-posse="{{ candidato.data_posse or '' }}"
+                                                   onchange="atualizarBarra()">
+                                        </td>
+                                        <td>
+                                            {{ candidato.nome }}
+                                            {# Alerta de dados faltantes #}
+                                            {% set faltantes = [] %}
+                                            {% if not candidato.data_posse %}{% set _ = faltantes.append('Data de Posse') %}{% endif %}
+                                            {% if not candidato.lotacao %}{% set _ = faltantes.append('Lotação') %}{% endif %}
+                                            {% if faltantes %}
+                                                <i class="fas fa-exclamation-circle"
+                                                   style="color:#dc2626; margin-left:8px; cursor:help;"
+                                                   title="Dados faltantes: {{ faltantes|join(', ') }}"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ candidato.numero_inscricao }}</td>
+                                        <td>
+                                            {% if candidato.data_posse %}
+                                                {{ candidato.data_posse | dateformat_br }}
+                                            {% else %}
+                                                <span style="color:#dc2626; font-weight:600;">Não definida</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if candidato.situacao == 'empossado' %}
+                                                <span class="badge badge-success">Empossado</span>
+                                            {% else %}
+                                                <span class="badge badge-warning">Nomeado</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state" style="margin: 1.5rem;">
+                        <p>Nenhum candidato (nomeado ou empossado) encontrado neste edital.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </main>
+</div>
+
+{# ── Barra flutuante de seleção ──────────────────────────────── #}
+<div class="bulk-action-bar" id="bulkActionBar">
+    <span><span id="selectedCount" class="count-badge">0</span> candidato(s) selecionado(s)</span>
+    <button class="btn btn-primary" onclick="abrirModal()">
+        Gerar Termo Coletivo
+    </button>
+    <button class="btn btn-secondary" onclick="limparSelecao()" style="padding:5px 10px;">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
+{# ── Modal de confirmação e portaria ─────────────────────────── #}
+<div id="modalColetivo" class="modal">
+    <div class="modal-content" style="max-width: 620px;">
+        <div class="modal-header">
+            <h3>Confirmar Emissão — Termo de Posse Coletivo</h3>
+            <button class="icon-button" onclick="fecharModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            {# Configurações globais #}
+            <div class="config-info-card">
+                <p><strong>Reitor / Pró-Reitor(a):</strong>
+                    <span id="display-reitor">{{ default_reitor or 'NÃO DEFINIDO — configure em Configurações' }}</span>
+                </p>
+                <p><strong>Local da Posse:</strong>
+                    <span id="display-local">{{ default_local or 'NÃO DEFINIDO — configure em Configurações' }}</span>
+                </p>
+            </div>
+
+            {# Aviso de data divergente #}
+            <div id="aviso-data" class="data-aviso">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="aviso-data-texto"></span>
+            </div>
+
+            {# Lista de candidatos selecionados #}
+            <label class="modal-label" style="margin-top: 0.5rem;">
+                Candidatos selecionados (<span id="modal-count">0</span>):
+            </label>
+            <ul id="preview-candidatos"></ul>
+
+            {# Campo de portaria #}
+            <label class="modal-label" for="campo-portaria">
+                Portaria de Nomeação <span class="modal-required">*</span>
+            </label>
+            <textarea
+                id="campo-portaria"
+                class="portaria-field"
+                placeholder="Portaria nº 692, de 24 de julho de 2026, publicada no Diário Oficial da União nº 139, de 27 de julho de 2026, Seção II, Página 42"
+                required></textarea>
+
+            {# Alerta de erro interno do modal #}
+            <div id="modal-erro" class="alert alert-error" style="display:none; margin-top:0.75rem;"></div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+            <button type="button" id="btnGerar" class="btn btn-primary" onclick="submitColetivo()">
+                Gerar Documento
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─── Constantes vindas do servidor ────────────────────────────────────────────
+const DEFAULT_REITOR = "{{ default_reitor or '' }}";
+const DEFAULT_LOCAL  = "{{ default_local  or '' }}";
+
+// ─── Collapsibles ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.js-toggle-trigger').forEach(trigger => {
+        trigger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const body = document.getElementById(this.dataset.target);
+            if (body) {
+                body.classList.toggle('active');
+                this.classList.toggle('active');
+            }
+        });
+    });
+
+    // Auto-hide flash messages
+    setTimeout(() => {
+        document.querySelectorAll('.alert:not(#modal-erro)').forEach(el => el.style.display = 'none');
+    }, 6000);
+});
+
+// ─── Seleção de checkboxes ────────────────────────────────────────────────────
+function atualizarBarra() {
+    const total = document.querySelectorAll('.candidato-select:checked').length;
+    document.getElementById('selectedCount').innerText = total;
+    document.getElementById('bulkActionBar').classList.toggle('active', total > 0);
+}
+
+function toggleCargo(source) {
+    source.closest('table').querySelectorAll('.candidato-select')
+        .forEach(cb => cb.checked = source.checked);
+    atualizarBarra();
+}
+
+function selecionarPosseMaisRecente(btn) {
+    const card = btn.closest('.edital-card');
+    const checkboxes = card.querySelectorAll('.candidato-select');
+
+    // Extrai todas as datas de posse válidas (YYYY-MM-DD)
+    const datasValidas = [...checkboxes]
+        .map(cb => cb.dataset.posse)
+        .filter(Boolean);
+
+    if (datasValidas.length === 0) {
+        alert('Nenhum candidato com data de posse definida neste edital.');
+        return;
+    }
+
+    // A data mais recente (formato YYYY-MM-DD, a maior string é a mais recente)
+    const dataMaisRecente = datasValidas.slice().sort().reverse()[0];
+
+    const cbsMaisRecentes = [...checkboxes].filter(cb => cb.dataset.posse === dataMaisRecente);
+    const todosJaMarcados = cbsMaisRecentes.every(cb => cb.checked);
+
+    // Se todos da data mais recente já estavam marcados, desmarca; senão, marca todos da mais recente
+    cbsMaisRecentes.forEach(cb => cb.checked = !todosJaMarcados);
+    // Desmarca os que têm data diferente neste edital
+    [...checkboxes].filter(cb => cb.dataset.posse !== dataMaisRecente).forEach(cb => cb.checked = false);
+
+    // Atualiza cabeçalhos de tabela por cargo
+    card.querySelectorAll('.cargo-group').forEach(group => {
+        const cargoHeaderCb = group.querySelector('.checkbox-custom:not(.candidato-select)');
+        const cbsDoCargo = group.querySelectorAll('.candidato-select');
+        if (cargoHeaderCb && cbsDoCargo.length > 0) {
+            cargoHeaderCb.checked = [...cbsDoCargo].every(cb => cb.checked);
+        }
+    });
+
+    // Abre o edital para que o usuário veja os selecionados
+    const editalBody = card.querySelector('.edital-body');
+    const headerTrigger = card.querySelector('.js-toggle-trigger');
+    if (editalBody && !editalBody.classList.contains('active')) {
+        editalBody.classList.add('active');
+        if (headerTrigger) headerTrigger.classList.add('active');
+    }
+
+    // Abre os grupos de cargos que contêm candidatos marcados
+    card.querySelectorAll('.cargo-group').forEach(group => {
+        const temMarcado = [...group.querySelectorAll('.candidato-select')].some(cb => cb.checked);
+        const cargoBody = group.querySelector('.cargo-body');
+        const cargoTrigger = group.querySelector('.cargo-header');
+        if (temMarcado && cargoBody && !cargoBody.classList.contains('active')) {
+            cargoBody.classList.add('active');
+            if (cargoTrigger) cargoTrigger.classList.add('active');
+        }
+    });
+
+    atualizarBarra();
+}
+
+function limparSelecao() {
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    atualizarBarra();
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+const modal    = document.getElementById('modalColetivo');
+const btnGerar = document.getElementById('btnGerar');
+const erroDiv  = document.getElementById('modal-erro');
+const avisoDiv = document.getElementById('aviso-data');
+
+function abrirModal() {
+    const selecionados = [...document.querySelectorAll('.candidato-select:checked')];
+    if (selecionados.length === 0) return;
+
+    // Reseta estado
+    erroDiv.style.display  = 'none';
+    avisoDiv.style.display = 'none';
+    btnGerar.disabled      = false;
+    document.getElementById('campo-portaria').value = '';
+
+    // Preenche prévia de candidatos
+    const ul = document.getElementById('preview-candidatos');
+    ul.innerHTML = '';
+    selecionados.forEach(cb => {
+        const li = document.createElement('li');
+        const cargo   = cb.dataset.cargo   || '—';
+        const lotacao = cb.dataset.lotacao || 'Lotação não definida';
+        li.innerHTML = `<strong>${cb.dataset.nome}</strong> — ${cargo} — ${lotacao}`;
+        ul.appendChild(li);
+    });
+    document.getElementById('modal-count').innerText = selecionados.length;
+
+    // ── Valida datas ──────────────────────────────────────────────────────────
+    const datasUnicas = new Set(selecionados.map(cb => cb.dataset.posse).filter(Boolean));
+    const semData     = selecionados.filter(cb => !cb.dataset.posse);
+
+    let bloqueado = false;
+
+    if (semData.length > 0) {
+        const nomes = semData.map(cb => cb.dataset.nome).join(', ');
+        mostrarErroModal(`Os seguintes candidatos não possuem data de posse: ${nomes}. Preencha antes de emitir.`);
+        bloqueado = true;
+    } else if (datasUnicas.size > 1) {
+        const formataData = d => {
+            const [y, m, dia] = d.split('-');
+            return `${dia}/${m}/${y}`;
+        };
+        const listaFmt = [...datasUnicas].map(formataData).join(', ');
+        avisoDiv.style.display = 'block';
+        document.getElementById('aviso-data-texto').innerText =
+            `Atenção: os candidatos selecionados possuem datas de posse divergentes (${listaFmt}). ` +
+            `Todos devem ter a mesma data para emitir o Termo Coletivo.`;
+        mostrarErroModal('Datas de posse divergentes. Corrija antes de prosseguir.');
+        bloqueado = true;
+    }
+
+    // ── Valida configurações globais ──────────────────────────────────────────
+    if (!DEFAULT_REITOR || !DEFAULT_LOCAL) {
+        mostrarErroModal('Reitor ou Local padrão não definidos. Configure-os em "Configurações".');
+        bloqueado = true;
+    }
+
+    if (bloqueado) btnGerar.disabled = true;
+
+    modal.classList.add('active');
+}
+
+function fecharModal() {
+    modal.classList.remove('active');
+}
+
+function mostrarErroModal(msg) {
+    erroDiv.style.display   = 'block';
+    erroDiv.innerHTML       = `<strong>Erro:</strong> ${msg}`;
+    btnGerar.disabled       = true;
+}
+
+function submitColetivo() {
+    const portaria = document.getElementById('campo-portaria').value.trim();
+    if (!portaria) {
+        erroDiv.style.display = 'block';
+        erroDiv.innerHTML     = '<strong>Erro:</strong> O campo Portaria é obrigatório.';
+        return;
+    }
+
+    const selecionados = [...document.querySelectorAll('.candidato-select:checked')];
+    const container    = document.getElementById('inputs-candidatos');
+    container.innerHTML = '';
+
+    selecionados.forEach(cb => {
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = 'candidatos_ids';
+        input.value = cb.value;
+        container.appendChild(input);
+    });
+
+    document.getElementById('input_reitor').value   = DEFAULT_REITOR;
+    document.getElementById('input_local').value    = DEFAULT_LOCAL;
+    document.getElementById('input_portaria').value = portaria;
+
+    fecharModal();
+    document.getElementById('form-coletivo').submit();
+}
+
+// Fecha modal clicando fora
+window.onclick = e => { if (e.target === modal) fecharModal(); };
+</script>
+</body>
+</html>

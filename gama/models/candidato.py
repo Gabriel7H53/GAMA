@@ -225,7 +225,8 @@ class Candidato:
         try:
             cursor.execute("""
                 SELECT c.nome, c.data_posse, cr.nome_cargo, cr.padrao_vencimento,
-                       c.portaria, c.lotacao, c.contatado, c.cod_vaga
+                       c.portaria, c.lotacao, c.contatado, c.cod_vaga,
+                       c.situacao, c.numero_inscricao, c.nota, c.classificacao, c.id_edital
                 FROM Candidato c
                 JOIN Cargo cr ON c.id_cargo = cr.id_cargo
                 WHERE c.id_candidato = ?

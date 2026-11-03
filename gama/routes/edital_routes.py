@@ -1,6 +1,6 @@
 # gama/routes/edital_routes.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
-from gama.models.edital import Edital, Cargo, PortariaRascunho
+from gama.models.edital import Edital, Cargo, PortariaRascunho, HistoricoEdital
 from gama.models.candidato import Candidato
 from gama.models.configuracao import Opcao 
 from gama.models.vaga import Vaga
@@ -13,6 +13,20 @@ edital_bp = Blueprint('edital', __name__, template_folder='../templates')
 
 def check_admin():
     return 'usuario_id' in session and session.get('tipo') == 'administrador' or 'usuario'
+
+def usuario_logado():
+    return session.get('nome', 'Usuário')
+
+def registrar_historico(id_edital, tipo, descricao):
+    if id_edital:
+        HistoricoEdital.create(id_edital, usuario_logado(), tipo, descricao)
+
+@edital_bp.route('/api/historico')
+@edital_bp.route('/api/historico/<int:id_edital>')
+def api_historico(id_edital=None):
+    if not check_admin():
+        return jsonify([]), 403
+    return jsonify(Edital.get_historico(id_edital))
 
 @edital_bp.route('/painel')
 def painel():
@@ -80,6 +94,10 @@ def adicionar_edital():
     status = request.form['status']
 
     success, message = Edital.create(numero_edital, data_edital, data_publicacao, vencimento_edital, prazo_prorrogacao, status)
+    if success:
+        novo = Edital.get_by_numero(numero_edital)
+        if novo:
+            registrar_historico(novo[0], 'criacao', f"Criou o edital '{numero_edital}' (status: {status}, vencimento: {vencimento_edital})")
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 
@@ -102,14 +120,23 @@ def editar_edital(id_edital):
     status_final = status_do_formulario
     vencimento_final_str = vencimento_edital_str
 
-    if prazo_prorrogacao > 0:
+    # O campo de vencimento do formulário já vem com a prorrogação anterior embutida.
+    # Só recalcula quando o prazo foi AUMENTADO em relação ao valor salvo, somando apenas a diferença.
+    edital_atual = Edital.get_by_id(id_edital)
+    try:
+        prazo_anterior = int(edital_atual[5] or 0) if edital_atual else 0
+    except (ValueError, TypeError):
+        prazo_anterior = 0
+
+    if prazo_prorrogacao > prazo_anterior:
+        dias_adicionais = prazo_prorrogacao - prazo_anterior
         status_final = 'prorrogado'
-        
+
         try:
             data_base_vencimento = datetime.strptime(vencimento_edital_str, '%Y-%m-%d')
-            data_vencimento_nova = data_base_vencimento + timedelta(days=prazo_prorrogacao)
+            data_vencimento_nova = data_base_vencimento + timedelta(days=dias_adicionais)
             vencimento_final_str = data_vencimento_nova.strftime('%Y-%m-%d')
-            flash(f'Edital prorrogado! Novo vencimento: {vencimento_final_str}.', 'info')
+            flash(f'Edital prorrogado em {dias_adicionais} dia(s)! Novo vencimento: {vencimento_final_str}.', 'info')
         except ValueError:
             flash('Formato de data de vencimento inválido. A prorrogação não pôde ser calculada.', 'error')
             return redirect(url_for('edital.painel'))
@@ -121,7 +148,8 @@ def editar_edital(id_edital):
         data_publicacao, 
         vencimento_final_str, 
         prazo_prorrogacao, 
-        status_final
+        status_final,
+        usuario_responsavel=session.get('nome', 'Usuário')
     )
     
     flash(message, 'success' if success else 'error')
@@ -133,7 +161,12 @@ def remover_edital(id_edital):
     if not check_admin():
         return redirect(url_for('auth.login'))
         
+    edital_atual = Edital.get_by_id(id_edital)
+    qtd_candidatos = len(Candidato.get_by_edital(id_edital)) if edital_atual else 0
+
     success, message = Edital.delete(id_edital)
+    if success and edital_atual:
+        registrar_historico(id_edital, 'remocao', f"Removeu o edital '{edital_atual[1]}' e seus {qtd_candidatos} candidato(s)")
     flash(message, 'success' if success else 'error')
     return redirect(url_for('edital.painel'))
 
@@ -171,6 +204,9 @@ def adicionar_candidato(id_edital):
         pcd, cotista, situacao, data_posse, 
         portaria, lotacao, contatado, cod_vaga
     ) 
+
+    if success:
+        registrar_historico(id_edital, 'candidato_adicionado', f"Adicionou o candidato '{nome}' (inscrição {inscricao}, cargo '{nome_cargo}', situação: {situacao})")
 
     if success and cod_vaga:
         Vaga.ocupar_por_codigo(cod_vaga, nome)
@@ -215,6 +251,37 @@ def editar_candidato(id_candidato):
         portaria, lotacao, contatado, cod_vaga_novo
     ) 
 
+    if success and candidato_antigo:
+        def _v(x):
+            return '' if x is None else str(x)
+        comparacoes = [
+            ('nome', candidato_antigo['nome'], nome),
+            ('inscrição', candidato_antigo['numero_inscricao'], inscricao),
+            ('cargo', candidato_antigo['nome_cargo'], nome_cargo),
+            ('nota', candidato_antigo['nota'], nota),
+            ('classificação', candidato_antigo['classificacao'], classificacao),
+            ('situação', candidato_antigo['situacao'], situacao),
+            ('data de posse', candidato_antigo['data_posse'], data_posse),
+            ('lotação', candidato_antigo['lotacao'], lotacao),
+            ('código da vaga', candidato_antigo['cod_vaga'], cod_vaga_novo),
+        ]
+        alteracoes = []
+        for rotulo, antigo, novo in comparacoes:
+            if rotulo == 'nota':
+                try:
+                    if float(antigo) == float(novo):
+                        continue
+                except (ValueError, TypeError):
+                    pass
+            if _v(antigo).strip() != _v(novo).strip():
+                alteracoes.append(f"{rotulo}: '{_v(antigo)}' ➝ '{_v(novo)}'")
+        if bool(candidato_antigo['contatado']) != contatado:
+            ant = 'Sim' if candidato_antigo['contatado'] else 'Não'
+            novo_c = 'Sim' if contatado else 'Não'
+            alteracoes.append(f"contatado: '{ant}' ➝ '{novo_c}'")
+        if alteracoes:
+            registrar_historico(id_edital, 'candidato_editado', f"Alterou o candidato '{candidato_antigo['nome']}' — " + '; '.join(alteracoes))
+
     if success:
         if cod_vaga_antigo and cod_vaga_antigo != cod_vaga_novo:
             Vaga.desocupar_por_codigo(cod_vaga_antigo)
@@ -235,6 +302,9 @@ def remover_candidato(id_candidato):
     id_edital_destino = candidato['id_edital'] if candidato else None
 
     success, message = Candidato.delete(id_candidato)
+
+    if success and candidato:
+        registrar_historico(id_edital_destino, 'candidato_removido', f"Removeu o candidato '{candidato['nome']}' (inscrição {candidato['numero_inscricao']}, cargo '{candidato['nome_cargo']}')")
     
     if success and candidato and candidato['cod_vaga']:
         from gama.models.vaga import Vaga 
@@ -317,6 +387,7 @@ def adicionar_lote(id_edital):
             except Exception as e:
                 erros_insercao.append(f"Cargo '{nome_cargo}': {e}")
         if candidatos_adicionados > 0:
+            registrar_historico(id_edital, 'candidato_adicionado', f"Importou {candidatos_adicionados} candidato(s) via planilha CSV ({arquivo.filename})")
             flash(f'{candidatos_adicionados} candidatos adicionados com sucesso!', 'success')
         if erros_insercao:
             flash(f'Ocorreram erros durante a inserção: ' + " | ".join(erros_insercao), 'error')
@@ -334,10 +405,15 @@ def nomear_lote(id_edital):
         flash('Nenhum candidato foi selecionado.', 'error')
         return redirect(url_for('edital.painel'))
     nomeados_com_sucesso = 0
+    nomes_nomeados = []
     for id_candidato in ids_candidatos_selecionados:
+        info = Candidato.get_by_id(id_candidato)
         if Candidato.nomear(id_candidato):
             nomeados_com_sucesso += 1
+            if info:
+                nomes_nomeados.append(info['nome'])
     if nomeados_com_sucesso > 0:
+        registrar_historico(id_edital, 'candidato_nomeado', f"Nomeou {nomeados_com_sucesso} candidato(s): " + ', '.join(nomes_nomeados))
         flash(f'{nomeados_com_sucesso} candidato(s) nomeado(s) com sucesso!', 'success')
     return redirect(url_for('edital.painel'))
 
@@ -355,9 +431,14 @@ def empossar_lote(id_edital):
         flash('Nenhum candidato foi selecionado.', 'error')
         return redirect(url_for('edital.painel'))
     empossados_com_sucesso = 0
+    nomes_empossados = []
     for id_candidato in ids_candidatos_selecionados:
-        if Candidato.empossar(id_candidato, data_posse): 
+        info = Candidato.get_by_id(id_candidato)
+        if Candidato.empossar(id_candidato, data_posse):
             empossados_com_sucesso += 1
+            if info:
+                nomes_empossados.append(info['nome'])
     if empossados_com_sucesso > 0:
+        registrar_historico(id_edital, 'candidato_empossado', f"Empossou {empossados_com_sucesso} candidato(s) em {data_posse}: " + ', '.join(nomes_empossados))
         flash(f'{empossados_com_sucesso} candidato(s) empossado(s) com sucesso para a data de {data_posse}!', 'success')
     return redirect(url_for('edital.painel'))

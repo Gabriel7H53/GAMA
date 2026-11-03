@@ -116,7 +116,7 @@ def criar_tabelas():
         cod_cargo TEXT NOT NULL UNIQUE,
         nome_cargo TEXT NOT NULL,
         situacao TEXT NOT NULL CHECK (situacao IN ('Ativo', 'Inativo')),
-        nivel TEXT NOT NULL CHECK (nivel IN ('D', 'E'))
+        nivel TEXT NOT NULL CHECK (nivel IN ('A', 'B', 'C', 'D', 'E'))
     );
                          
     CREATE TABLE IF NOT EXISTS HistoricoVaga (
@@ -138,6 +138,15 @@ def criar_tabelas():
         cargo_gestao_id INTEGER NOT NULL,
         FOREIGN KEY (cargo_gestao_id) REFERENCES CargoGestao(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS HistoricoEdital (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_edital INTEGER NOT NULL,
+        usuario_responsavel TEXT NOT NULL,
+        tipo_alteracao TEXT NOT NULL,      -- Ex: 'edicao'
+        descricao TEXT NOT NULL,           -- Ex: "Alterou status: 'ativo' -> 'prorrogado'"
+        data_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_edital) REFERENCES Edital(id_edital) ON DELETE CASCADE
+    );
     CREATE TABLE IF NOT EXISTS PortariaRascunho (
         id_edital INTEGER PRIMARY KEY,
         texto_portaria TEXT NOT NULL,
@@ -146,6 +155,25 @@ def criar_tabelas():
     );
     """)
     
+    # Migração: bancos antigos restringiam CargoGestao.nivel a ('D', 'E').
+    # O SQLite não altera CHECK in-place, então a tabela é recriada preservando os dados.
+    cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='CargoGestao'")
+    row = cursor.fetchone()
+    if row and "'A'" not in row[0]:
+        cursor.executescript("""
+        CREATE TABLE CargoGestao_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cod_cargo TEXT NOT NULL UNIQUE,
+            nome_cargo TEXT NOT NULL,
+            situacao TEXT NOT NULL CHECK (situacao IN ('Ativo', 'Inativo')),
+            nivel TEXT NOT NULL CHECK (nivel IN ('A', 'B', 'C', 'D', 'E'))
+        );
+        INSERT INTO CargoGestao_new (id, cod_cargo, nome_cargo, situacao, nivel)
+            SELECT id, cod_cargo, nome_cargo, situacao, nivel FROM CargoGestao;
+        DROP TABLE CargoGestao;
+        ALTER TABLE CargoGestao_new RENAME TO CargoGestao;
+        """)
+
     # Verifica se o usuário master já existe
     cursor.execute("SELECT * FROM Usuario WHERE id_usuario = ?", ('master_001',))
     if not cursor.fetchone():

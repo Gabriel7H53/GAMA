@@ -283,8 +283,8 @@ class Vaga:
                         erros.append(f"Linha {index + 2}: Situação do Cargo '{situacao_cargo}' inválida. Use 'Ativo' ou 'Inativo'.")
                         continue
                         
-                    if nivel_cargo not in ["D", "E"]:
-                        erros.append(f"Linha {index + 2}: Nível do Cargo '{nivel_cargo}' inválido. Use 'D' ou 'E'.")
+                    if nivel_cargo not in ["A", "B", "C", "D", "E"]:
+                        erros.append(f"Linha {index + 2}: Nível do Cargo '{nivel_cargo}' inválido. Use 'A', 'B', 'C', 'D' ou 'E'.")
                         continue
 
                     cod_vaga = row.get("CODIGO_VAGA").strip()

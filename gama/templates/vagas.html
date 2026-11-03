@@ -35,6 +35,9 @@
                     <button class="btn btn-primary" onclick="openLoteModal()">
                           Importar Lote
                     </button>
+                    <a class="btn btn-primary" href="{{ url_for('vaga.gerar_qrsta_pdf') }}">
+                          QRSTA
+                    </a>
                     <button class="btn btn-primary" onclick="openCargoModal(null)">
                          Novo Cargo
                     </button>
@@ -66,9 +69,9 @@
                     </div>
                     
                     <div class="count-group">
-                        <span class="count-tag"><strong>Total:</strong> {{ cargo.total_vagas }}</span>
-                        <span class="count-tag"><strong>Ocupadas:</strong> {{ cargo.ocupadas }}</span>
-                        <span class="count-tag"><strong>Livres:</strong> {{ cargo.livres }}</span>
+                        <span class="count-tag"><strong>Total:</strong> <span class="count-num">{{ cargo.total_vagas }}</span></span>
+                        <span class="count-tag"><strong>Ocupadas:</strong> <span class="count-num">{{ cargo.ocupadas }}</span></span>
+                        <span class="count-tag"><strong>Livres:</strong> <span class="count-num">{{ cargo.livres }}</span></span>
                     </div>
                     
                     <div class="actions">
@@ -141,24 +144,27 @@
                     <input type="hidden" name="id_cargo" id="id_cargo">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="cod_cargo">Código do Cargo</label>
+                            <label for="cod_cargo" class="required">Código do Cargo</label>
                             <input type="text" id="cod_cargo" name="cod_cargo" required>
                         </div>
                         <div class="form-group" style="flex-grow: 2;">
-                            <label for="nome_cargo">Nome do Cargo</label>
+                            <label for="nome_cargo" class="required">Nome do Cargo</label>
                             <input type="text" id="nome_cargo" name="nome_cargo" required>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="nivel">Nível</label>
+                            <label for="nivel" class="required">Nível</label>
                             <select id="nivel" name="nivel" required>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
                                 <option value="D">D</option>
                                 <option value="E">E</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="situacao">Situação</label>
+                            <label for="situacao" class="required">Situação</label>
                             <select id="situacao" name="situacao" required>
                                 <option value="Ativo">Ativo</option>
                                 <option value="Inativo">Inativo</option>
@@ -167,7 +173,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" onclick="closeCargoModal()">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCargoModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar Cargo</button>
                 </div>
             </form>
@@ -175,68 +181,97 @@
     </div>
     
     <div id="vagaModal" class="modal">
-        <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-content modal-vaga">
             <div class="modal-header">
-                <h3 id="vagaModalTitle"></h3>
-                <button class="icon-button" onclick="closeVagaModal()"><i class="fas fa-times"></i></button>
+                <div>
+                    <h3 id="vagaModalTitle"></h3>
+                    <span class="modal-subtitle">Os campos marcados com <span class="req-mark">*</span> são obrigatórios.</span>
+                </div>
+                <button type="button" class="icon-button" title="Fechar" onclick="closeVagaModal()"><i class="fas fa-times"></i></button>
             </div>
-            <form id="vagaForm" method="POST">
+            <form id="vagaForm" method="POST" class="modal-form">
                 <div class="modal-body">
                     <input type="hidden" name="id_vaga" id="id_vaga">
                     <input type="hidden" name="cargo_gestao_id" id="cargo_gestao_id">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cod_vaga">Código da Vaga</label>
-                            <input type="text" id="cod_vaga" name="cod_vaga" required>
+
+                    <!-- Contexto do cargo -->
+                    <div class="cargo-context">
+                        <div class="cargo-context-main">
+                            <span class="cargo-context-label">Cargo</span>
+                            <strong id="ctxCargoNome">---</strong>
+                            <span class="cargo-context-meta">
+                                Cód. <span id="ctxCargoCod">---</span>
+                                <span class="badge" id="ctxCargoNivel"></span>
+                                <span class="badge" id="ctxCargoSituacao"></span>
+                            </span>
                         </div>
-                        <div class="form-group" id="area_field_group" style="display: none;">
-                            <label for="area">Área</label>
-                            <input type="text" id="area" name="area">
+                        <div class="cargo-context-stats">
+                            <div class="stat-box"><span id="ctxTotal">0</span><small>Total</small></div>
+                            <div class="stat-box stat-ocupada"><span id="ctxOcupadas">0</span><small>Ocupadas</small></div>
+                            <div class="stat-box stat-livre"><span id="ctxLivres">0</span><small>Livres</small></div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="observacoes">Observações</label>
-                        <textarea id="observacoes" name="observacoes" rows="2"></textarea>
-                    </div>
-                    
-                    <hr style="margin: 1.5rem 0;">
-                    <p style="font-weight: 500; margin-bottom: 1rem;">Ocupação da Vaga</p>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="ocupante_candidato_id">Vincular Candidato do Sistema (Opcional)</label>
-                            <select id="ocupante_candidato_id" name="ocupante_candidato_id">
-                                <option value="">-- Vaga Livre / Informar Manualmente --</option>
-                                {% for c in candidatos_sistema %}
-                                    <option value="{{ c.id_candidato }}">{{ c.nome }} ({{ c.numero_edital }})</option>
-                                {% endfor %}
-                            </select>
+                    <!-- Dados da vaga -->
+                    <section class="form-section">
+                        <h4 class="form-section-title"><i class="fas fa-id-badge"></i> Dados da Vaga</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="cod_vaga" class="required">Código da Vaga</label>
+                                <input type="text" id="cod_vaga" name="cod_vaga" required>
+                            </div>
+                            <div class="form-group" id="area_field_group" style="display: none;">
+                                <label for="area">Área</label>
+                                <input type="text" id="area" name="area">
+                            </div>
+                            <div class="form-group form-full">
+                                <label for="observacoes">Observações</label>
+                                <textarea id="observacoes" name="observacoes" rows="2"></textarea>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="ocupante_manual">Ocupante Manual (se não vinculado)</label>
-                            <input type="text" id="ocupante_manual" name="ocupante_manual">
-                        </div>
-                    </div>
-                    <small class="form-help">Se um candidato for selecionado, o 'Ocupante Manual' será ignorado. Se ambos estiverem vazios, a vaga será marcada como 'Livre'.</small>
+                    </section>
 
+                    <!-- Ocupação -->
+                    <section class="form-section">
+                        <h4 class="form-section-title">
+                            <i class="fas fa-user-check"></i> Ocupação da Vaga
+                            <span class="badge badge-livre" id="vagaStatusBadge">Livre</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="ocupante_candidato_id">Vincular Candidato do Sistema</label>
+                                <select id="ocupante_candidato_id" name="ocupante_candidato_id">
+                                    <option value="">-- Vaga Livre / Informar Manualmente --</option>
+                                    {% for c in candidatos_sistema %}
+                                        <option value="{{ c.id_candidato }}">{{ c.nome }} ({{ c.numero_edital }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="ocupante_manual">Ocupante Manual</label>
+                                <input type="text" id="ocupante_manual" name="ocupante_manual" placeholder="Se não vinculado a candidato">
+                            </div>
+                        </div>
+                        <small class="form-help">Se um candidato for selecionado, o 'Ocupante Manual' será ignorado. Se ambos estiverem vazios, a vaga será marcada como 'Livre'.</small>
+                    </section>
+
+                    <div id="historico-wrapper" style="display: none;">
+                        <section class="form-section">
+                            <h4 class="form-section-title"><i class="fas fa-history"></i> Histórico de Alterações</h4>
+                            <div id="lista-historico" class="historico-container">
+                                <p style="color: #999; text-align: center;">Carregando...</p>
+                            </div>
+                        </section>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" onclick="closeVagaModal()">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeVagaModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar Vaga</button>
-                </div>
-                <div id="historico-wrapper" style="display: none;">
-                    <hr style="margin: 1.5rem 0;">
-                    <p style="font-weight: 500; margin-bottom: 0.5rem;">Histórico de Alterações</p>
-                    <div id="lista-historico" class="historico-container">
-                        <p style="color: #999; text-align: center;">Carregando...</p>
-                    </div>
                 </div>
             </form>
         </div>
     </div>
-    
+
     <div id="loteModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -250,12 +285,12 @@
                     <p><code>CODIGO_CARGO | NOME_CARGO | SITUACAO | NIVEL | CODIGO_VAGA | SITUACAO_VAGA | NOME_OCUPANTE | OBSERVACAO | AREA</code></p>
                     <br>
                     <div class="form-group">
-                        <label for="planilha">Arquivo da Planilha (.xlsx):</label>
+                        <label for="planilha" class="required">Arquivo da Planilha (.xlsx):</label>
                         <input type="file" id="planilha" name="planilha" accept=".xlsx" required>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" onclick="closeLoteModal()">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeLoteModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Enviar Planilha</button>
                 </div>
             </form>
@@ -305,10 +340,37 @@
     const selectCandidatos = document.getElementById('ocupante_candidato_id');
     const inputManual = document.getElementById('ocupante_manual');
 
+    function atualizarStatusVaga() {
+        const ocupada = selectCandidatos.value !== '' || inputManual.value.trim() !== '';
+        const badge = document.getElementById('vagaStatusBadge');
+        badge.textContent = ocupada ? 'Ocupada' : 'Livre';
+        badge.className = 'badge ' + (ocupada ? 'badge-ocupada' : 'badge-livre');
+    }
+    selectCandidatos.addEventListener('change', atualizarStatusVaga);
+    inputManual.addEventListener('input', atualizarStatusVaga);
+
+    function preencherContextoCargo(cargo_id, cargo_nome) {
+        const btn = document.querySelector(`#cargo-${cargo_id} [data-cargo]`);
+        let c = {};
+        try { c = btn ? JSON.parse(btn.getAttribute('data-cargo')) : {}; } catch (e) {}
+        document.getElementById('ctxCargoNome').innerText = c.nome_cargo || cargo_nome;
+        document.getElementById('ctxCargoCod').innerText = c.cod_cargo || '---';
+        const nivel = document.getElementById('ctxCargoNivel');
+        nivel.innerText = c.nivel ? 'Nível ' + c.nivel : '';
+        nivel.className = 'badge badge-info';
+        const sit = document.getElementById('ctxCargoSituacao');
+        sit.innerText = c.situacao || '';
+        sit.className = 'badge ' + (c.situacao === 'Ativo' ? 'badge-success' : 'badge-danger');
+        document.getElementById('ctxTotal').innerText = c.total_vagas ?? 0;
+        document.getElementById('ctxOcupadas').innerText = c.ocupadas ?? 0;
+        document.getElementById('ctxLivres').innerText = c.livres ?? 0;
+    }
+
     function openVagaModal(cargo_id, cargo_nome, buttonElement) {
         // 1. Reset inicial
         vagaForm.reset();
         document.getElementById('cargo_gestao_id').value = cargo_id;
+        preencherContextoCargo(cargo_id, cargo_nome);
         
         // 2. Lógica do campo Área (Exibe apenas se o nome do cargo sugerir)
         const areaFieldGroup = document.getElementById('area_field_group');
@@ -399,6 +461,7 @@
             historicoWrapper.style.display = 'none';
         }
         
+        atualizarStatusVaga();
         vagaModal.classList.add('active');
     }
     
@@ -417,6 +480,9 @@
     }
 
     // Fechar modais
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { closeCargoModal(); closeVagaModal(); closeLoteModal(); }
+    });
     window.onclick = function(event) {
         if (event.target == cargoModal) closeCargoModal();
         if (event.target == vagaModal) closeVagaModal();
